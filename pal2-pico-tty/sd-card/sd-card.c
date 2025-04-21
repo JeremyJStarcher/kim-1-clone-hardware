@@ -9,6 +9,7 @@
 #include "sd-card.h"
 #include "pico_fatfs/fatfs/diskio.h"
 
+#define RUN_PERF_TEST false
 
 const uint32_t PIN_LED = 25;  // only for Pico
 bool _picoW = true;
@@ -147,7 +148,7 @@ int prep_sd_card()
     uint32_t totalLatency;
     bool skipLatency;
 
-
+#if RUN_PERF_TEST
     printf("Type any character to start\n");
     while(true) {
         int ch_usb = getchar_timeout_us(0);
@@ -156,6 +157,7 @@ int prep_sd_card()
            // uart_putc_raw(PAL_UART, (uint8_t)ch_usb);
         }
     }
+#endif
 
 
 
@@ -223,7 +225,7 @@ int prep_sd_card()
     printf("Manufacturing date : %d/%d\n\n", (int) cid[14] & 0xf, ((int) cid[13] & 0xf)*16 + ((int) (cid[14] >> 2) & 0xf) + 2000);
 #endif
 
-#if 1
+#if RUN_PERF_TEST
     fr = f_open(&fil, "bench.dat", FA_READ | FA_WRITE | FA_CREATE_ALWAYS);
     if (fr != FR_OK) {
         printf("open error %d\n", fr);
@@ -304,7 +306,7 @@ int prep_sd_card()
     }
 #endif
 
-#if 1
+#if RUN_PERF_TEST
     printf("\n");
     printf("Starting read test, please wait.\n\n");
     printf("read speed and latency\n");
@@ -364,14 +366,6 @@ int prep_sd_card()
         print_tree(root, 0);
         // Work with `root` as needed...
         free_tree(root);
-    }
-
-    // OK blink
-    while (true) {
-        _set_led(true);
-        sleep_ms(1000);
-        _set_led(false);
-        sleep_ms(1000);
     }
 
     return 0;
