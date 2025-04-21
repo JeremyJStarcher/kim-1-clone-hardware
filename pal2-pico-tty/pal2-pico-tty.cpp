@@ -18,7 +18,6 @@
 #define PIN_SCK  SD_SCK
 #define PIN_MOSI SD_MOSI
 
-
 // I2C defines
 // This example will use I2C0 on GPIO8 (SDA) and GPIO9 (SCL) running at 400KHz.
 // Pins can be changed, see the GPIO function select table in the datasheet for information on GPIO assignments
@@ -51,16 +50,23 @@ void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq) {
 #define UART_RX_PIN 5
 
 
-
 int main()
 {
     stdio_init_all();
 
-    // Initialise the Wi-Fi chip
-    if (cyw43_arch_init()) {
-        printf("Wi-Fi init failed\n");
-        return -1;
+    /* Wait until someone opens the USB serial port.                         */
+    while (!stdio_usb_connected()) {
+        tight_loop_contents();
     }
+
+    configure_hardware();
+
+
+    // // Initialise the Wi-Fi chip
+    // if (cyw43_arch_init()) {
+    //     printf("Wi-Fi init failed\n");
+    //     return -1;
+    // }
 
     // SPI initialisation. This example will use SPI at 1MHz.
     spi_init(SPI_PORT, 1000*1000);
@@ -68,7 +74,7 @@ int main()
     gpio_set_function(PIN_CS,   GPIO_FUNC_SIO);
     gpio_set_function(PIN_SCK,  GPIO_FUNC_SPI);
     gpio_set_function(PIN_MOSI, GPIO_FUNC_SPI);
-    
+
     // Chip select is active-low, so we'll initialise it to a driven-high state
     gpio_set_dir(PIN_CS, GPIO_OUT);
     gpio_put(PIN_CS, 1);
@@ -76,7 +82,7 @@ int main()
 
     // I2C Initialisation. Using it at 400Khz.
     i2c_init(I2C_PORT, 400*1000);
-    
+
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SDA);
@@ -87,7 +93,7 @@ int main()
     PIO pio = pio0;
     uint offset = pio_add_program(pio, &blink_program);
     printf("Loaded program at %d\n", offset);
-    
+
     #ifdef PICO_DEFAULT_LED_PIN
     blink_pin_forever(pio, 0, offset, PICO_DEFAULT_LED_PIN, 3);
     #else
@@ -104,13 +110,13 @@ int main()
     // Set datasheet for more information on function select
     gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
-    
+
     // Use some the various UART functions to send out data
     // In a default system, printf will also output via the default UART
-    
+
     // Send out a string, with CR/LF conversions
     uart_puts(UART_ID, " Hello, UART!\n");
-    
+
     // For more examples of UART use see https://github.com/raspberrypi/pico-examples/tree/master/uart
 
     int k = prep_sd_card();

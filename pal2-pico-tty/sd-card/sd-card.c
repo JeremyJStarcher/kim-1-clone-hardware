@@ -7,6 +7,7 @@
 #include "./pico_fatfs/tf_card.h"
 #include "./pico_fatfs/fatfs/ff.h"
 #include "sd-card.h"
+#include "pico_fatfs/fatfs/diskio.h"
 
 
 const uint32_t PIN_LED = 25;  // only for Pico
@@ -61,30 +62,27 @@ static DirEntry* create_entry(const char *name, int is_dir) {
 static bool _check_pico_w()
 {
     adc_init();
-    int dir = gpio_get_dir(29);
-    int fnc = gpio_get_function(29);
-    adc_gpio_init(29);
-    adc_select_input(3);
-    int adc29 = adc_read();
-    gpio_set_function(29, fnc);
-    gpio_set_dir(29, dir);
+    adc_gpio_init(29);         // Initialize GPIO29 for ADC
+    adc_select_input(3);       // ADC3 is GPIO29
+    uint16_t adc_value = adc_read();
+    sleep_ms(100);
+    adc_value = adc_read();
 
-    dir = gpio_get_dir(25);
-    fnc = gpio_get_function(25);
     gpio_init(25);
     gpio_set_dir(25, GPIO_IN);
-    int gp25 = gpio_get(25);
-    gpio_set_function(25, fnc);
-    gpio_set_dir(25, dir);
+    bool gpio25_value = gpio_get(25);
 
-    if (gp25) {
-        return true; // Can't tell, so assume yes
-    } else if (adc29 < 200) {
-        return true; // PicoW
-    } else {
-        return false;
+
+    // Logic:
+    // - ADC < ~200 (low voltage) suggests Pico W
+    // - GPIO25 HIGH also suggests Pico W
+    if (gpio25_value || adc_value < 200) {
+        return true;  // Probably Pico W
     }
+
+    return false;      // Probably Pico
 }
+
 
 static void _set_led(bool flag)
 {
@@ -115,39 +113,7 @@ static void _error_blink(int count)
     }
 }
 
-int prep_sd_card()
-{
-    FATFS fs;
-    FIL fil;
-    FRESULT fr;     /* FatFs return code */
-    UINT br;
-    UINT bw;
-
-    float s;
-    uint32_t t;
-    uint32_t maxLatency;
-    uint32_t minLatency;
-    uint32_t totalLatency;
-    bool skipLatency;
-
-    stdio_init_all();
-
-    /* Wait until someone opens the USB serial port.                         */
-    while (!stdio_usb_connected()) {
-        tight_loop_contents();
-    }
-   
-
-    printf("Running int\r\n");
-
-    
-    // // Initialise UART 0
-    // uart_init(uart0, 115200);
-    // // Set the GPIO pin mux to the UART - 0 is TX, 1 is RX
-    // gpio_set_function(0, GPIO_FUNC_UART);
-    // gpio_set_function(1, GPIO_FUNC_UART);
-
-    printf("\n");
+int configure_hardware() {
 
     _picoW = _check_pico_w();
     // Pico / Pico W dependencies
@@ -164,6 +130,22 @@ int prep_sd_card()
         gpio_set_dir(PIN_LED, GPIO_OUT);
     }
     _set_led(false);
+}
+
+int prep_sd_card()
+{
+    FATFS fs;
+    FIL fil;
+    FRESULT fr;     /* FatFs return code */
+    UINT br;
+    UINT bw;
+
+    float s;
+    uint32_t t;
+    uint32_t maxLatency;
+    uint32_t minLatency;
+    uint32_t totalLatency;
+    bool skipLatency;
 
 
     printf("Type any character to start\n");
@@ -241,7 +223,7 @@ int prep_sd_card()
     printf("Manufacturing date : %d/%d\n\n", (int) cid[14] & 0xf, ((int) cid[13] & 0xf)*16 + ((int) (cid[14] >> 2) & 0xf) + 2000);
 #endif
 
-#if 0
+#if 1
     fr = f_open(&fil, "bench.dat", FA_READ | FA_WRITE | FA_CREATE_ALWAYS);
     if (fr != FR_OK) {
         printf("open error %d\n", fr);
@@ -322,7 +304,7 @@ int prep_sd_card()
     }
 #endif
 
-#if 0
+#if 1
     printf("\n");
     printf("Starting read test, please wait.\n\n");
     printf("read speed and latency\n");

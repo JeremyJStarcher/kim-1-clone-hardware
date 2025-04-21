@@ -23,7 +23,18 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico_w CACHE STRING "Board type")
+# set(PICO_BOARD pico_w CACHE STRING "Board type")
+
+# define "w" board to use cyw43_arch_xxx() function
+if(PICO_BOARD)
+    unset(PICO_BOARD)
+endif()
+if(PICO_PLATFORM STREQUAL rp2350)
+    set(PICO_BOARD pico2_w)
+else()
+    set(PICO_BOARD pico_w)
+endif()
+
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -64,7 +75,7 @@ target_include_directories(pal2-pico-tty PRIVATE
 )
 
 # Add any user requested libraries
-target_link_libraries(pal2-pico-tty 
+target_link_libraries(pal2-pico-tty
         hardware_spi
         hardware_i2c
         hardware_pio

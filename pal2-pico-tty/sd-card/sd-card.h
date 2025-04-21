@@ -27,6 +27,7 @@ FRESULT build_tree(const char *path, DirEntry **out_node);
 void print_tree(DirEntry *node, int level);
 void free_tree(DirEntry *node);
 int prep_sd_card();
+int configure_hardware(void);
 
 #ifdef __cplusplus
 }
