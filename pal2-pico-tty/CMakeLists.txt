@@ -35,7 +35,14 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(pal2-pico-tty pal2-pico-tty.cpp )
+add_executable(pal2-pico-tty
+ pal2-pico-tty.cpp
+ sd-card/sd-card.c
+ sd-card/pico_fatfs/fatfs/ff.c
+ sd-card/pico_fatfs/fatfs/ffsystem.c
+ sd-card/pico_fatfs/tf_card.c
+ sd-card/pico_fatfs/fatfs/ffunicode.c
+)
 
 pico_set_program_name(pal2-pico-tty "pal2-pico-tty")
 pico_set_program_version(pal2-pico-tty "0.1")
@@ -62,6 +69,7 @@ target_link_libraries(pal2-pico-tty
         hardware_i2c
         hardware_pio
         pico_cyw43_arch_none
+        hardware_adc
         )
 
 pico_add_extra_outputs(pal2-pico-tty)

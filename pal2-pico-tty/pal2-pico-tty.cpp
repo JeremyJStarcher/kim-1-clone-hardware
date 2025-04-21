@@ -6,14 +6,18 @@
 #include "pico/cyw43_arch.h"
 #include "hardware/uart.h"
 
+#include "sd-card/sd-card.h"
+
 // SPI Defines
 // We are going to use SPI 0, and allocate it to the following GPIO pins
 // Pins can be changed, see the GPIO function select table in the datasheet for information on GPIO assignments
-#define SPI_PORT spi0
-#define PIN_MISO 16
-#define PIN_CS   17
-#define PIN_SCK  18
-#define PIN_MOSI 19
+
+#define SPI_PORT spi1
+#define PIN_MISO SD_MISO
+#define PIN_CS   SD_CS
+#define PIN_SCK  SD_SCK
+#define PIN_MOSI SD_MOSI
+
 
 // I2C defines
 // This example will use I2C0 on GPIO8 (SDA) and GPIO9 (SCL) running at 400KHz.
@@ -108,6 +112,8 @@ int main()
     uart_puts(UART_ID, " Hello, UART!\n");
     
     // For more examples of UART use see https://github.com/raspberrypi/pico-examples/tree/master/uart
+
+    int k = prep_sd_card();
 
     while (true) {
         printf("Hello, world!\n");
