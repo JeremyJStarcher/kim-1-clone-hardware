@@ -208,46 +208,24 @@ int scan_i2c_bus() {
 static void animation(int addr) {
 
     #define SLEEPTIME 25
-    const char *words[]= {"SSD1306", "DISPLAY", "DRIVER"};
+    const char *words[]= {"PAL-2", "SSD1306", "DISPLAY", "DRIVER", "*                               "};
 
     ssd1306_t disp;
     disp.external_vcc=false;
     ssd1306_init(&disp, 128, 64, addr, I2C_PORT);
     ssd1306_clear(&disp);
 
-    printf("ANIMATION!\n");
-
     char buf[8];
 
-    for(;;) {
-        for(int y=0; y<31; ++y) {
-            ssd1306_draw_line(&disp, 0, y, 127, y);
-            ssd1306_show(&disp);
-            sleep_ms(SLEEPTIME);
-            ssd1306_clear(&disp);
-        }
+    while(true)
+    for(int i=0; i<sizeof(words)/sizeof(char *); ++i) {
+        static bool m = true;
 
-        for(int y=0, i=1; y>=0; y+=i) {
-            ssd1306_draw_line(&disp, 0, 31-y, 127, 31+y);
-            ssd1306_draw_line(&disp, 0, 31+y, 127, 31-y);
-            ssd1306_show(&disp);
-            sleep_ms(SLEEPTIME);
-            ssd1306_clear(&disp);
-            if(y==32) i=-1;
-        }
-
-        for(int i=0; i<sizeof(words)/sizeof(char *); ++i) {
-            ssd1306_draw_string(&disp, 8, 24, 2, words[i]);
-            ssd1306_show(&disp);
-            sleep_ms(800);
-            ssd1306_clear(&disp);
-        }
-
-        for(int y=31; y<63; ++y) {
-            ssd1306_draw_line(&disp, 0, y, 127, y);
-            ssd1306_show(&disp);
-            sleep_ms(SLEEPTIME);
-            ssd1306_clear(&disp);
-        }
+        m = !m;
+        ssd1306_set_text_inv(&disp, m);
+        ssd1306_draw_string(&disp, 0, 24, 2, words[i]);
+        ssd1306_show(&disp);
+        sleep_ms(800);
+        ssd1306_clear(&disp);
     }
 }

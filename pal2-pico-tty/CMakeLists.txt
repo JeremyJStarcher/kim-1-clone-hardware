@@ -15,6 +15,7 @@ if(WIN32)
 else()
     set(USERHOME $ENV{HOME})
 endif()
+
 set(sdkVersion 2.1.1)
 set(toolchainVersion 14_2_Rel1)
 set(picotoolVersion 2.1.1)
@@ -46,14 +47,15 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(pal2-pico-tty
- pal2-pico-tty.cpp
- sd-card/sd-card.c
- sd-card/pico_fatfs/fatfs/ff.c
- sd-card/pico_fatfs/fatfs/ffsystem.c
- sd-card/pico_fatfs/tf_card.c
- sd-card/pico_fatfs/fatfs/ffunicode.c
- pico-ssd1306/ssd1306.c
+add_executable(
+    pal2-pico-tty
+    pal2-pico-tty.cpp
+    sd-card/sd-card.c
+    sd-card/pico_fatfs/fatfs/ff.c
+    sd-card/pico_fatfs/fatfs/ffsystem.c
+    sd-card/pico_fatfs/tf_card.c
+    sd-card/pico_fatfs/fatfs/ffunicode.c
+    pico-ssd1306/ssd1306.c
 )
 
 pico_set_program_name(pal2-pico-tty "pal2-pico-tty")
@@ -69,25 +71,28 @@ pico_enable_stdio_uart(pal2-pico-tty 0)
 pico_enable_stdio_usb(pal2-pico-tty 1)
 
 # Add the standard library to the build
-target_link_libraries(pal2-pico-tty
-        pico_stdlib
+target_link_libraries(
+    pal2-pico-tty
+    pico_stdlib
 )
 
 # Add the standard include files to the build
-target_include_directories(pal2-pico-tty PRIVATE
-        ${CMAKE_CURRENT_LIST_DIR}
-        pico-ssd1306
+target_include_directories(
+    pal2-pico-tty PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}
+    pico-ssd1306
 )
 
 # Add any user requested libraries
-target_link_libraries(pal2-pico-tty
-        pico_stdlib
-        hardware_spi
-        hardware_i2c
-        hardware_pio
-        pico_cyw43_arch_none
-        hardware_adc
-        hardware_uart
+target_link_libraries(
+    pal2-pico-tty
+    pico_stdlib
+    hardware_spi
+    hardware_i2c
+    hardware_pio
+    pico_cyw43_arch_none
+    hardware_adc
+    hardware_uart
 )
 
 pico_add_extra_outputs(pal2-pico-tty)
