@@ -32,6 +32,16 @@ extern "C"
 #define I2C_SDA 20
 #define I2C_SCL 21
 
+    static int BAUD_RATE = 9600;
+
+#define PAL_RESET_GPIO 16
+#define TTY_SWITCH1_GPIO 14
+#define TTY_SWITCH2_GPIO 15 /* reserved – not used in this port           */
+
+#define PAL_UART uart0
+#define PAL_UART_TX_GPIO 0
+#define PAL_UART_RX_GPIO 1
+
     bool __no_inline_not_in_flash_func(get_bootsel_button)();
     void test_button(void);
 

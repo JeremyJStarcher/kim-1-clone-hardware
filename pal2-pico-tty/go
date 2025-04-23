@@ -5,3 +5,5 @@ mkdir -p build
 cd build
 cmake ..
 make
+
+cp ../build/pal2-pico-tty.uf2 /media/jjs/RPI-RP2/

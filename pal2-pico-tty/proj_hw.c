@@ -11,6 +11,7 @@
 #include "pico/binary_info.h"
 #include "hardware/adc.h"
 #include "pico/cyw43_arch.h"
+#include "hardware/uart.h"
 
 #include "proj_hw.h"
 
