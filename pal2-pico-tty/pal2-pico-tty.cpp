@@ -150,12 +150,16 @@ int main()
     ssd1306_set_status(&disp, "SCAN COMPLETE");
 
     ssd1306_set_status(&disp, "SCANNING RAM");
-    size_t mem_size1 = get_largest_alloc_block_binary2(1, 512 * 1024);
+    size_t mem_size1 = get_largest_alloc_block_binary2(1, 1024 * 1024);
     size_t freeK = (size_t)(mem_size1 / 1024);
+
     printf("(binary) Largest chunk of free heap = %d %d\r\n", mem_size1, freeK);
-    char buf[128];
-    snprintf(buf, sizeof buf, "FREE RAM: %dK",  freeK);
-    ssd1306_set_status(&disp, buf);
+
+    ssd1306_clear(&disp);
+    ssd1306_printf(&disp, 0, 24-16, 2, "FREE RAM:");
+    ssd1306_printf(&disp, 0, 24-0, 2, "%dK", freeK);
+    ssd1306_printf(&disp, 0, 24+16, 2, "%d\r\n", mem_size1);
+    ssd1306_show(&disp);
 
     while (false)
     {

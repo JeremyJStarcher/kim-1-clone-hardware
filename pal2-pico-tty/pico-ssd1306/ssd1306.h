@@ -283,6 +283,9 @@ void ssd1306_draw_string(ssd1306_t *p, uint32_t x, uint32_t y, float scale, cons
 void ssd1306_set_text_inv(ssd1306_t *p, const bool mode);
 
 
+
+void ssd1306_printf(ssd1306_t *p, uint32_t x, uint32_t y, float scale, const char *fmt, ...);
+
 #ifdef __cplusplus
 }
 #endif

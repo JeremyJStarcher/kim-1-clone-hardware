@@ -321,3 +321,14 @@ void ssd1306_show(ssd1306_t *p) {
 void ssd1306_set_text_inv(ssd1306_t *p, const bool mode) {
     text_inv_mode = mode;
 }
+
+void ssd1306_printf(ssd1306_t *p, uint32_t x, uint32_t y, float scale, const char *fmt, ...)
+{
+    char buf[256];                     /* adjust to a sensible upper bound */
+    va_list ap;
+
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof buf, fmt, ap);
+    va_end(ap);
+    ssd1306_draw_string(p, x, y, scale, buf);
+}
