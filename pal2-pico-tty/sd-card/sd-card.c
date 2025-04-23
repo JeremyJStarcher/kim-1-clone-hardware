@@ -10,6 +10,9 @@
 #include "pico_fatfs/fatfs/diskio.h"
 
 #define RUN_PERF_TEST false
+#define DRIVE_PATH "0:"
+#define PTP_PATH "/kim-1/basic"
+
 
 const uint32_t PIN_LED = 25;  // only for Pico
 bool _picoW = true;
@@ -183,7 +186,7 @@ int prep_sd_card()
     pico_fatfs_set_config(&config);
 
     for (int i = 0; i < 5; i++) {
-        fr = f_mount(&fs, "", 1);
+        fr = f_mount(&fs, DRIVE_PATH, 1);
         if (fr == FR_OK) { break; }
         printf("mount error %d -> retry %d\n", fr, i);
         pico_fatfs_reboot_spi();
@@ -360,9 +363,10 @@ int prep_sd_card()
     printf("\nDone\n");
 #endif
 
+
     DirEntry *root = NULL;
 
-    if (build_tree("/", &root) == FR_OK) {
+    if (build_tree(DRIVE_PATH PTP_PATH, &root) == FR_OK) {
         print_tree(root, 0);
         // Work with `root` as needed...
         free_tree(root);
