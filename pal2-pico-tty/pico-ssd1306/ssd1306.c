@@ -195,7 +195,7 @@ void ssd1306_draw_empty_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t wi
     ssd1306_draw_line(p, x+width, y, x+width, y+height);
 }
 
-void ssd1306_draw_char_with_font(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, const uint8_t *font, char c) {
+void ssd1306_draw_char_with_font(ssd1306_t *p, uint32_t x, uint32_t y, float scale, const uint8_t *font, char c) {
     if(c<font[3]||c>font[4])
         return;
 
@@ -220,9 +220,10 @@ void ssd1306_draw_char_with_font(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t 
     }
 }
 
-void ssd1306_draw_string_with_font(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, const uint8_t *font, const char *s) {
+void ssd1306_draw_string_with_font(ssd1306_t *p, uint32_t x, uint32_t y, float scale, const uint8_t *font, const char *s) {
 
     if (text_inv_mode) {
+        // Add a little padding so we get a top and bottom border
         ssd1306_draw_square(p, x, y-1, strlen(s) * ((font[1]+font[2])*scale), (font[0]*scale)+2);
     }
 
@@ -231,11 +232,11 @@ void ssd1306_draw_string_with_font(ssd1306_t *p, uint32_t x, uint32_t y, uint32_
     }
 }
 
-void ssd1306_draw_char(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, char c) {
+void ssd1306_draw_char(ssd1306_t *p, uint32_t x, uint32_t y, float scale, char c) {
     ssd1306_draw_char_with_font(p, x, y, scale, font_8x5, c);
 }
 
-void ssd1306_draw_string(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, const char *s) {
+void ssd1306_draw_string(ssd1306_t *p, uint32_t x, uint32_t y, float scale, const char *s) {
     ssd1306_draw_string_with_font(p, x, y, scale, font_8x5, s);
 }
 

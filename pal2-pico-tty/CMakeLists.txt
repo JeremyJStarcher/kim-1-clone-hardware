@@ -61,6 +61,10 @@ add_executable(
 pico_set_program_name(pal2-pico-tty "pal2-pico-tty")
 pico_set_program_version(pal2-pico-tty "0.1")
 
+
+target_compile_definitions(pal2-pico-tty PRIVATE PICO_MALLOC_PANIC=0)
+
+
 # Generate PIO header
 pico_generate_pio_header(
     pal2-pico-tty ${CMAKE_CURRENT_LIST_DIR}/blink.pio

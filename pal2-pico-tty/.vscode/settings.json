@@ -39,5 +39,6 @@
     "files.associations": {
         "*.embeddedhtml": "html",
         "sd-card.h": "c"
-    }
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }
