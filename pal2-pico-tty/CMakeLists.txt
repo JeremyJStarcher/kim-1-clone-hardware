@@ -56,6 +56,8 @@ add_executable(
     sd-card/pico_fatfs/tf_card.c
     sd-card/pico_fatfs/fatfs/ffunicode.c
     pico-ssd1306/ssd1306.c
+    proj_hw.c
+
 )
 
 pico_set_program_name(pal2-pico-tty "pal2-pico-tty")

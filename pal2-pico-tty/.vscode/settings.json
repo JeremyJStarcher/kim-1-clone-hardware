@@ -38,7 +38,8 @@
     "raspberry-pi-pico.ninjaPath": "${HOME}/.pico-sdk/ninja/v1.12.1/ninja",
     "files.associations": {
         "*.embeddedhtml": "html",
-        "sd-card.h": "c"
+        "sd-card.h": "c",
+        "proj_hw.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

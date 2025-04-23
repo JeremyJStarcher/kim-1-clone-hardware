@@ -10,32 +10,14 @@
 #include "malloc.h"
 
 #include "sd-card/sd-card.h"
-
-// SPI Defines
-// We are going to use SPI 0, and allocate it to the following GPIO pins
-// Pins can be changed, see the GPIO function select table in the datasheet for information on GPIO assignments
-
-#define SPI_PORT spi1
-#define PIN_MISO SD_MISO
-#define PIN_CS SD_CS
-#define PIN_SCK SD_SCK
-#define PIN_MOSI SD_MOSI
-
-// I2C defines
-// This example will use I2C0 on GPIO8 (SDA) and GPIO9 (SCL) running at 400KHz.
-// Pins can be changed, see the GPIO function select table in the datasheet for information on GPIO assignments
-#define I2C_PORT i2c0
-#define I2C_SDA 20
-#define I2C_SCL 21
+#include "proj_hw.h"
 
 #include "blink.pio.h"
 #include "ssd1306.h"
+#include "proj_hw.h"
 
 static void reset_pal(void);
 static void set_tty_mode(bool enable);
-static int scan_i2c_bus(void);
-static void init_ssd1306(int addr, ssd1306_t *p);
-static size_t get_largest_alloc_block_binary2(size_t low, size_t high);
 static void ssd1306_set_status(ssd1306_t *disp, const char *s);
 
 void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq)
@@ -156,10 +138,12 @@ int main()
     printf("(binary) Largest chunk of free heap = %d %d\r\n", mem_size1, freeK);
 
     ssd1306_clear(&disp);
-    ssd1306_printf(&disp, 0, 24-16, 2, "FREE RAM:");
-    ssd1306_printf(&disp, 0, 24-0, 2, "%dK", freeK);
-    ssd1306_printf(&disp, 0, 24+16, 2, "%d\r\n", mem_size1);
+    ssd1306_printf(&disp, 0, 24 - 16, 2, "FREE RAM:");
+    ssd1306_printf(&disp, 0, 24 - 0, 2, "%dK", freeK);
+    ssd1306_printf(&disp, 0, 24 + 16, 2, "%d\r\n", mem_size1);
     ssd1306_show(&disp);
+
+    test_button();
 
     while (false)
     {
@@ -168,132 +152,9 @@ int main()
     }
 }
 
-// I2C reserves some addresses for special purposes. We exclude these from the scan.
-// These are any addresses of the form 000 0xxx or 111 1xxx
-bool reserved_addr(uint8_t addr)
+static void ssd1306_set_status(ssd1306_t *disp, const char *s)
 {
-    return (addr & 0x78) == 0 || (addr & 0x78) == 0x78;
-}
-
-int scan_i2c_bus()
-{
-#define VERBOSE 0
-    // // Enable UART so we can print status output
-    // stdio_init_all();
-
-    //  /* Wait until someone opens the USB serial port.                         */
-    //  while (!stdio_usb_connected()) {
-    //      tight_loop_contents();
-    //  }
-
-    int port = -1;
-
-    // This example will use I2C0 on the default SDA and SCL pins (GP4, GP5 on a Pico)
-    i2c_init(I2C_PORT, 100 * 1000);
-    gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
-    gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
-    gpio_pull_up(I2C_SDA);
-    gpio_pull_up(I2C_SCL);
-    // Make the I2C pins available to picotool
-    bi_decl(bi_2pins_with_func(I2C_SDA, I2C_SCL, GPIO_FUNC_I2C));
-
-#if VERBOSE
-    printf("\nI2C Bus Scan\n");
-    printf("   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n");
-#endif
-
-    for (int addr = 0; addr < (1 << 7); ++addr)
-    {
-        if (addr % 16 == 0)
-        {
-#if VERBOSE
-            printf("%02x ", addr);
-#endif
-        }
-
-        // Perform a 1-byte dummy read from the probe address. If a slave
-        // acknowledges this address, the function returns the number of bytes
-        // transferred. If the address byte is ignored, the function returns
-        // -1.
-
-        // Skip over any reserved addresses.
-        int ret;
-        uint8_t rxdata;
-        if (reserved_addr(addr))
-            ret = PICO_ERROR_GENERIC;
-        else
-            ret = i2c_read_blocking(I2C_PORT, addr, &rxdata, 1, false);
-
-#if VERBOSE
-        printf(ret < 0 ? "." : "@");
-#endif
-
-        if (!(ret < 0))
-        {
-            port = addr;
-        }
-#if VERBOSE
-        printf(addr % 16 == 15 ? "\n" : "  ");
-#endif
-    }
-#if VERBOSE
-    printf("Done.\n");
-#endif
-    return port;
-}
-
-static void init_ssd1306(int addr, ssd1306_t *disp)
-{
-
-#define SLEEPTIME 25
-    const char *words[] = {"PAL-2", "SSD1306", "DISPLAY", "DRIVER", "*                               "};
-
-    disp->external_vcc = false;
-    ssd1306_init(disp, 128, 64, addr, I2C_PORT);
     ssd1306_clear(disp);
-
-    char buf[8];
-
-    // while(true)
-    for (int i = 0; i < sizeof(words) / sizeof(char *); ++i)
-    {
-        static bool m = true;
-
-        m = !m;
-        ssd1306_set_text_inv(disp, m);
-        ssd1306_draw_string(disp, 0, 24, 1.5, words[i]);
-        ssd1306_show(disp);
-        sleep_ms(800);
-        ssd1306_clear(disp);
-    }
-}
-
-static size_t get_largest_alloc_block_binary2(size_t low, size_t high)
-{
-    // requires target_compile_definitions(pal2-pico-tty PRIVATE PICO_MALLOC_PANIC=0)
-
-    size_t best = 0;
-    while (low <= high)
-    {
-        size_t mid = low + (high - low) / 2;
-        void *p = malloc(mid);
-        if (p)
-        {
-            free(p);
-            best = mid;
-            low = mid + 1;
-        }
-        else
-        {
-            high = mid - 1;
-        }
-    }
-    return best;
-}
-
-static void ssd1306_set_status(ssd1306_t *disp, const char *s) {
-    ssd1306_clear(disp);
-    ssd1306_set_text_inv(disp, false);
     ssd1306_draw_string(disp, 0, 24, 1, s);
     ssd1306_show(disp);
 }
