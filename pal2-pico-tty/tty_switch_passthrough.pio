@@ -1,13 +1,25 @@
-; This program mirrors an input pin to an output pin,
-; but only if 'enabled' (1) from the FIFO.
+; This code sits on the KIM-1 keypad vs the teletype switch.
+;
+; When the physical switch on the board is set to KIM-1 mode, this allows
+; the software to override that and put us in TTY mode.
+;
 
 .program tty_switch_passthrough
 
 
-loop:
-    wait 0 pin 0         ; wait for input to go high (actual GPIO assigned in C)
+.wrap_target
+    ; Wait for the KIM-1/PAL-1 to be scanning our row 
+    wait 1 pin 0         ; wait for input high
+    ; Alright, the scanning is happening, so we will set our pin direction to '1' to enable the output
+    ; and we force that line to go high.  This has the simulated effect of the button being pressed.
     set pindirs, 1       ; enable output
-    set pins, 0          ; drive output HIGH
-    wait 1 pin 0         ; wait for input to go low
+    set pins, 1          ; drive high
+
+    ; Then we wait until the KIM-1/PAL-1 has stopped scanning that row
+    wait 0 pin 0         ; wait for input low
+
+    ; We go into HIGH-Z mode, or input mode. This turns our pin invisible and
+    ; will not cause random ghosting on the keys or unwanted visual artifacts
+    ; on the LED panel.
     set pindirs, 0       ; release output (Hi-Z)
-    jmp loop
+.wrap
