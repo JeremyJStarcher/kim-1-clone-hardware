@@ -1,0 +1,13 @@
+; This program mirrors an input pin to an output pin,
+; but only if 'enabled' (1) from the FIFO.
+
+.program tty_switch_passthrough
+
+
+loop:
+    wait 0 pin 0         ; wait for input to go high (actual GPIO assigned in C)
+    set pindirs, 1       ; enable output
+    set pins, 0          ; drive output HIGH
+    wait 1 pin 0         ; wait for input to go low
+    set pindirs, 0       ; release output (Hi-Z)
+    jmp loop

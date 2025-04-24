@@ -15,6 +15,7 @@
 #include "blink.pio.h"
 #include "ssd1306.h"
 #include "proj_hw.h"
+#include "tty_switch_passthrough.h"
 
 static void reset_pal(void);
 static void set_tty_mode(bool enable);
@@ -51,9 +52,6 @@ int main()
     //     return -1;
     // }
 
-    gpio_init(PAL_RESET_GPIO);
-    gpio_init(TTY_SWITCH1_GPIO);
-    gpio_init(TTY_SWITCH2_GPIO);
 
     /* --- UART setup ------------------------------------------------------ */
     uart_init(PAL_UART, BAUD_RATE);
@@ -144,6 +142,9 @@ int main()
     ssd1306_printf(&disp, 0, y + (8 * ss * 1), ss, "%dK", freeK);
     ssd1306_printf(&disp, 0, y + (8 * ss * 2), ss, "%d\r\n", mem_size1);
     ssd1306_show(&disp);
+
+
+    jjs_init();
 
     main_loop();
     while (false)

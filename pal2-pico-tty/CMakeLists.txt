@@ -57,7 +57,7 @@ add_executable(
     sd-card/pico_fatfs/fatfs/ffunicode.c
     pico-ssd1306/ssd1306.c
     proj_hw.c
-
+    tty_switch_passthrough.c
 )
 
 pico_set_program_name(pal2-pico-tty "pal2-pico-tty")
@@ -69,7 +69,9 @@ target_compile_definitions(pal2-pico-tty PRIVATE PICO_MALLOC_PANIC=0)
 
 # Generate PIO header
 pico_generate_pio_header(
-    pal2-pico-tty ${CMAKE_CURRENT_LIST_DIR}/blink.pio
+    pal2-pico-tty 
+    ${CMAKE_CURRENT_LIST_DIR}/blink.pio
+    ${CMAKE_CURRENT_LIST_DIR}/tty_switch_passthrough.pio
 )
 
 # Modify the below lines to enable/disable output over UART/USB
