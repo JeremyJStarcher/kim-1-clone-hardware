@@ -140,13 +140,16 @@ int main()
     init_ssd1306(i2c_addr, &disp);
     ssd1306_init_tty(&disp, &tty, font_8x5);
 
-    ssd1306_set_status(&disp, "SCANNING DRIVE");
+    ssd1306_tty_puts(&tty, "SCANNING DRIVE --", 0);
+    ssd1306_tty_show(&tty);
     printf("Scanning drive\r\n");
     int k = prep_sd_card();
     printf("Done scanning drive\r\n");
-    ssd1306_set_status(&disp, "SCAN COMPLETE");
+    ssd1306_tty_puts(&tty, "Done\n", 0);
+    ssd1306_tty_show(&tty);
 
-    ssd1306_set_status(&disp, "SCANNING RAM");
+    ssd1306_tty_puts(&tty, "Scanning RAM", 0);
+    ssd1306_tty_show(&tty);
     size_t mem_size1 = get_largest_alloc_block_binary2(1, 1024 * 1024);
     size_t freeK = (size_t)(mem_size1 / 1024);
 
@@ -154,12 +157,9 @@ int main()
 
     int y = 0;
     int ss = 1;
-    ssd1306_clear(&disp);
-    ssd1306_printf(&disp, 0, y, ss, "FREE RAM:");
-    ssd1306_printf(&disp, 0, y + (8 * ss * 1), ss, "%dK", freeK);
-    ssd1306_printf(&disp, 0, y + (8 * ss * 2), ss, "%d\r\n", mem_size1);
-    ssd1306_show(&disp);
 
+    ssd1306_tty_printf(&tty, "FREE RAM: %dK %d\n", freeK, mem_size1);
+    ssd1306_tty_show(&tty);
 
     jjs_init();
 
@@ -171,12 +171,6 @@ int main()
     }
 }
 
-static void ssd1306_set_status(ssd1306_t *disp, const char *s)
-{
-    ssd1306_clear(disp);
-    ssd1306_draw_string(disp, 0, 24, 1, s);
-    ssd1306_show(disp);
-}
 
 static void reset_pal(void)
 {

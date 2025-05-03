@@ -317,6 +317,9 @@ extern "C"
 
 	void ssd1306_tty_show(ssd1306_tty_t *tty);
 
+	void ssd1306_tty_printf(ssd1306_tty_t *tty, const char *fmt, ...);
+
+
 
 #ifdef __cplusplus
 }

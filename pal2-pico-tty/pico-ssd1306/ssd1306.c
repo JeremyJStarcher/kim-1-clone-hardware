@@ -500,22 +500,34 @@ void ssd1306_init_tty(ssd1306_t *p, ssd1306_tty_t *tty, const uint8_t *font)
     tty->buffer = malloc(MAX_TTY_X * MAX_TTY_Y);
     tty->color = malloc(MAX_TTY_X * MAX_TTY_Y);
 
-    ssd1306_tty_set_font(tty, font, 2);
+    ssd1306_tty_set_font(tty, font, 1);
 
     ssd1306_tty_cls(tty);
 
-    ssd1306_tty_puts(tty, "Line 1\n", 0);
-    ssd1306_tty_puts(tty, "Line 2\n", 0);
-    ssd1306_tty_puts(tty, "Line 3\n", 0);
-    ssd1306_tty_puts(tty, "Line 4\n", 0);
-    ssd1306_tty_puts(tty, "Line 5\n", 0);
-    ssd1306_tty_puts(tty, "Line 6\n7!\n8888888888888888888888888888", 0);
-    ssd1306_tty_dump(tty);
+    // ssd1306_tty_puts(tty, "Line 1\n", 0);
+    // ssd1306_tty_puts(tty, "Line 2\n", 0);
+    // ssd1306_tty_puts(tty, "Line 3\n", 0);
+    // ssd1306_tty_puts(tty, "Line 4\n", 0);
+    // ssd1306_tty_puts(tty, "Line 5\n", 0);
+    // ssd1306_tty_puts(tty, "Line 6\n7!\n8888888888888888888888888888", 0);
+    // ssd1306_tty_dump(tty);
 
     ssd1306_tty_show(tty);
-    sleep_ms(10 * 50 * 1000);
     // aaa(p);
 }
+
+void ssd1306_tty_printf(ssd1306_tty_t *tty, const char *fmt, ...)
+{
+    char buf[256]; /* adjust to a sensible upper bound */
+    va_list ap;
+
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof buf, fmt, ap);
+    va_end(ap);
+
+    ssd1306_tty_puts(tty, buf, 0);
+}
+
 
 static void aaa(ssd1306_t *p)
 {
