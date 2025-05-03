@@ -1,9 +1,74 @@
 #!/bin/bash
+set -euo pipefail
 
-#rm -rf build 2> /dev/null
+UF2_FILE=./build/pal2-pico-tty.uf2
+TIMEOUT=100       # seconds to wait for RPI-RP2 mount
+USER_MEDIA_PATHS=(
+    "/media/$USER"
+    "/run/media/$USER"
+)
+
+# Step 1: Build the firmware
+echo "[*] Building firmware..."
 mkdir -p build
 cd build
 cmake ..
 make
+cd ..
 
-cp ../build/pal2-pico-tty.uf2 /media/jjs/RPI-RP2/
+# Step 2: Trigger bootloader via 1200 baud
+echo "[*] Looking for /dev/ttyACM* device..."
+ORIG_TTYS=(/dev/ttyACM*)
+
+if [ ${#ORIG_TTYS[@]} -eq 0 ]; then
+    echo "[!] No /dev/ttyACM* device found. Is the Pico connected?"
+    exit 1
+fi
+
+for DEV in "${ORIG_TTYS[@]}"; do
+    echo "[*] Triggering bootloader on $DEV via 1200 baud + DTR low..."
+    stty -F "$DEV" 1200 || continue
+    (
+        exec 3<>"$DEV"
+        sleep 0.1
+        printf "\x00" >&3 || true
+        sleep 0.1
+        exec 3>&-
+    ) 2>/dev/null || true
+done
+
+# Step 3: Wait for disconnection
+echo -n "[*] Waiting for Pico to disconnect..."
+for i in {1..40}; do
+    sleep 0.25
+    CURRENT_TTYS=(/dev/ttyACM*)
+    if [ ${#CURRENT_TTYS[@]} -eq 0 ]; then
+        echo -n " disconnected."
+        break
+    fi
+    echo -n "."
+done
+echo  ""
+
+# Step 4: Retry and wait for RPI-RP2 mass storage
+echo "[*] Waiting for RPI-RP2 to mount (timeout: $TIMEOUT s)..."
+for ((i=0; i<TIMEOUT; i++)); do
+    for path in "${USER_MEDIA_PATHS[@]}"; do
+        if [ -d "$path" ]; then
+            MOUNT=$(find "$path" -maxdepth 1 -type d -name "RPI-RP2" 2>/dev/null | head -n 1 || true)
+            if [ -n "$MOUNT" ]; then
+                echo "[*] Found RPI-RP2 at: $MOUNT"
+                echo "[*] Copying UF2 file..."
+                cp "$UF2_FILE" "$MOUNT/"
+                echo "[*] Upload complete."
+                exit 0
+            fi
+        fi
+    done
+    sleep 1
+    echo -n "."
+done
+
+echo
+echo "[!] Timed out waiting for RPI-RP2 to appear after $TIMEOUT seconds."
+exit 1
