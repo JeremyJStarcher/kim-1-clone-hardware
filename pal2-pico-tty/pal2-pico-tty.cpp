@@ -8,6 +8,7 @@
 #include "hardware/uart.h"
 #include "pico/binary_info.h"
 #include "malloc.h"
+#include "pico/time.h"
 
 #include "sd-card/sd-card.h"
 #include "proj_hw.h"
@@ -16,6 +17,9 @@
 #include "ssd1306.h"
 #include "proj_hw.h"
 #include "tty_switch_passthrough.h"
+
+#define USB_TIMEOUT_US 1 * 1000000
+
 
 static void reset_pal(void);
 static void set_tty_mode(bool enable);
@@ -34,15 +38,23 @@ void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq)
     pio->txf[sm] = (125000000 / (2 * freq)) - 3;
 }
 
+
+static void wait_for_usb_with_timeout() {
+    uint64_t start_time = time_us_64();
+    while (!stdio_usb_connected()) {
+        if (time_us_64() - start_time >= USB_TIMEOUT_US) {
+            break;
+        }
+        tight_loop_contents();
+    }
+}
+
+
 int main()
 {
     stdio_init_all();
 
-    /* Wait until someone opens the USB serial port.                         */
-    while (!stdio_usb_connected())
-    {
-        tight_loop_contents();
-    }
+    wait_for_usb_with_timeout();
 
     configure_hardware();
 
