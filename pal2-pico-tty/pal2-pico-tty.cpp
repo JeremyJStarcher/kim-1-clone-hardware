@@ -13,6 +13,8 @@
 #include "sd-card/sd-card.h"
 #include "proj_hw.h"
 
+#include "font.h"
+
 #include "blink.pio.h"
 #include "ssd1306.h"
 #include "proj_hw.h"
@@ -133,7 +135,10 @@ int main()
     }
 
     ssd1306_t disp;
+    ssd1306_tty_t tty;
+
     init_ssd1306(i2c_addr, &disp);
+    ssd1306_init_tty(&disp, &tty, font_8x5);
 
     ssd1306_set_status(&disp, "SCANNING DRIVE");
     printf("Scanning drive\r\n");

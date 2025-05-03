@@ -217,7 +217,7 @@ void ssd1306_draw_empty_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t wi
     ssd1306_draw_line(p, x + width, y, x + width, y + height);
 }
 
-void ssd1306_draw_char_with_font(ssd1306_t *p, uint32_t x, uint32_t y, float scale, const uint8_t *font, char c)
+void ssd1306_draw_char_with_font(ssd1306_t *p, uint32_t x, uint32_t y, int scale, const uint8_t *font, char c)
 {
     if (c < font[3] || c > font[4])
         return;
@@ -249,7 +249,7 @@ void ssd1306_draw_char_with_font(ssd1306_t *p, uint32_t x, uint32_t y, float sca
     }
 }
 
-void ssd1306_draw_string_with_font(ssd1306_t *p, uint32_t x, uint32_t y, float scale, const uint8_t *font, const char *s)
+void ssd1306_draw_string_with_font(ssd1306_t *p, uint32_t x, uint32_t y, int scale, const uint8_t *font, const char *s)
 {
 
     if (text_inv_mode)
@@ -264,12 +264,12 @@ void ssd1306_draw_string_with_font(ssd1306_t *p, uint32_t x, uint32_t y, float s
     }
 }
 
-void ssd1306_draw_char(ssd1306_t *p, uint32_t x, uint32_t y, float scale, char c)
+void ssd1306_draw_char(ssd1306_t *p, uint32_t x, uint32_t y, int scale, char c)
 {
     ssd1306_draw_char_with_font(p, x, y, scale, font_8x5, c);
 }
 
-void ssd1306_draw_string(ssd1306_t *p, uint32_t x, uint32_t y, float scale, const char *s)
+void ssd1306_draw_string(ssd1306_t *p, uint32_t x, uint32_t y, int scale, const char *s)
 {
     ssd1306_draw_string_with_font(p, x, y, scale, font_8x5, s);
 }
@@ -367,7 +367,7 @@ void ssd1306_set_text_inv(ssd1306_t *p, const bool mode)
     text_inv_mode = mode;
 }
 
-void ssd1306_printf(ssd1306_t *p, uint32_t x, uint32_t y, float scale, const char *fmt, ...)
+void ssd1306_printf(ssd1306_t *p, uint32_t x, uint32_t y, int scale, const char *fmt, ...)
 {
     char buf[256]; /* adjust to a sensible upper bound */
     va_list ap;
@@ -376,4 +376,156 @@ void ssd1306_printf(ssd1306_t *p, uint32_t x, uint32_t y, float scale, const cha
     vsnprintf(buf, sizeof buf, fmt, ap);
     va_end(ap);
     ssd1306_draw_string(p, x, y, scale, buf);
+}
+
+static void aaa(ssd1306_t *p);
+
+#define MAX_TTY_X 80
+#define MAX_TTY_Y 25
+
+void ssd1306_tty_set_font(ssd1306_tty_t *tty, const uint8_t *font, int scale)
+{
+    int font_height = (font[0] * scale);
+    int font_width = (font[1] + font[2] * scale);
+
+    tty->height = tty->ssd1306->height / font_height;
+    tty->width = tty->ssd1306->width / font_width;
+
+    tty->font = font;
+    tty->scale = scale;
+
+    printf("TTY CONFIG: height/width %d/%d\n", tty->height, tty->width);
+}
+
+void ssd1306_tty_scroll(ssd1306_tty_t *tty)
+{
+    // Move all rows up by one
+    int row_size = tty->width;
+    memmove(tty->buffer, tty->buffer + row_size, (tty->height - 1) * row_size);
+    memmove(tty->color, tty->color + row_size, (tty->height - 1) * row_size);
+
+    // Clear the last row
+    memset(tty->buffer + (tty->height - 1) * row_size, ' ', row_size);
+    memset(tty->color + (tty->height - 1) * row_size, 0, row_size);
+
+    tty->y = tty->height - 1;
+}
+
+void ssd1306_tty_cls(ssd1306_tty_t *tty)
+{
+    memset(tty->buffer, ' ', tty->width * tty->height);
+    memset(tty->color, 0, tty->width * tty->height);
+    tty->x = 0;
+    tty->y = 0;
+
+    // Optional: call a render function here
+    // ssd1306_tty_render(tty);
+}
+
+void ssd1306_tty_puts(ssd1306_tty_t *tty, const char *s, uint8_t color)
+{
+    while (*s)
+    {
+        ssd1306_tty_writechar(tty, *s++, color);
+    }
+}
+
+void ssd1306_tty_writechar(ssd1306_tty_t *tty, char c, uint8_t color)
+{
+    if (c == '\n')
+    {
+        tty->x = 0;
+        tty->y++;
+        if (tty->y >= tty->height)
+        {
+            ssd1306_tty_scroll(tty);
+        }
+        return;
+    }
+
+    if (tty->x >= tty->width)
+    {
+        tty->x = 0;
+        tty->y++;
+        if (tty->y >= tty->height)
+        {
+            ssd1306_tty_scroll(tty);
+        }
+    }
+
+    int idx = tty->y * tty->width + tty->x;
+    tty->buffer[idx] = c;
+    tty->color[idx] = color;
+
+    tty->x++;
+}
+
+void ssd1306_tty_dump(ssd1306_tty_t *tty)
+{
+    printf("DUMP %d %d\n", tty->width, tty->height);
+    for (int y = 0; y < tty->height; y++)
+    {
+        for (int x = 0; x < tty->width; x++)
+        {
+            char c = tty->buffer[y * tty->width + x];
+            putchar((c >= 32 && c <= 126) ? c : '.'); // printable ASCII or placeholder
+        }
+        putchar('\n');
+    }
+    printf("---> DUMP\n");
+}
+
+void ssd1306_init_tty(ssd1306_t *p, ssd1306_tty_t *tty, const uint8_t *font)
+{
+    tty->ssd1306 = p;
+    tty->bufsize = MAX_TTY_X * MAX_TTY_Y;
+    tty->buffer = malloc(MAX_TTY_X * MAX_TTY_Y);
+    tty->color = malloc(MAX_TTY_X * MAX_TTY_Y);
+
+    ssd1306_tty_set_font(tty, font, 1);
+
+    ssd1306_tty_cls(tty);
+
+    ssd1306_tty_puts(tty, "Line 1\n", 0);
+    ssd1306_tty_puts(tty, "Line 2\n", 0);
+    ssd1306_tty_puts(tty, "Line 3\n", 0);
+    ssd1306_tty_puts(tty, "Line 4\n", 0);
+    ssd1306_tty_puts(tty, "Line 5\n", 0);
+    ssd1306_tty_puts(tty, "Line 6\n7!\n8888888888888888888888888888", 0);
+    ssd1306_tty_dump(tty);
+
+    // aaa(p);
+}
+
+static void aaa(ssd1306_t *p)
+{
+
+#define SLEEPTIME 25
+
+    for (int y = 0; y < 31; ++y)
+    {
+        ssd1306_draw_line(p, 0, y, 127, y);
+        ssd1306_show(p);
+        sleep_ms(SLEEPTIME);
+        ssd1306_clear(p);
+    }
+
+    for (int y = 0, i = 1; y >= 0; y += i)
+    {
+        ssd1306_draw_line(p, 0, 31 - y, 127, 31 + y);
+        ssd1306_draw_line(p, 0, 31 + y, 127, 31 - y);
+        ssd1306_show(p);
+        sleep_ms(SLEEPTIME);
+        ssd1306_clear(p);
+        if (y == 32)
+            i = -1;
+    }
+
+    for (int y = 31; y < 63; ++y)
+    {
+        ssd1306_draw_line(p, 0, y, 127, y);
+        ssd1306_show(p);
+        sleep_ms(SLEEPTIME);
+        ssd1306_clear(p);
+    }
 }

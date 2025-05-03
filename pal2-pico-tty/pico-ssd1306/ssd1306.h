@@ -77,6 +77,23 @@ extern "C"
 	} ssd1306_t;
 
 	/**
+	 *	@brief holds the configuration for the tty mode
+	 */
+	typedef struct
+	{
+		uint8_t width;		/**< width of display in characters */
+		uint8_t height;		/**< height of display in charachters */
+		uint8_t *buffer;	/**< display buffer */
+		uint8_t *color;		/**< display color */
+		size_t bufsize;		/**< buffer size */
+		ssd1306_t *ssd1306; /* The display itself */
+		const uint8_t *font;
+		int scale;
+		int x; /* The x position */
+		int y; /* The y position */
+	} ssd1306_tty_t;
+
+	/**
 	 *	@brief initialize display
 	 *
 	 *	@param[in] p : pointer to instance of ssd1306_t
@@ -241,7 +258,7 @@ extern "C"
 		@param[in] font : pointer to font
 		@param[in] c : character to draw
 	*/
-	void ssd1306_draw_char_with_font(ssd1306_t *p, uint32_t x, uint32_t y, float scale, const uint8_t *font, char c);
+	void ssd1306_draw_char_with_font(ssd1306_t *p, uint32_t x, uint32_t y, int scale, const uint8_t *font, char c);
 
 	/**
 		@brief draw char with builtin font
@@ -252,7 +269,7 @@ extern "C"
 		@param[in] scale : scale font to n times of original size (default should be 1)
 		@param[in] c : character to draw
 	*/
-	void ssd1306_draw_char(ssd1306_t *p, uint32_t x, uint32_t y, float scale, char c);
+	void ssd1306_draw_char(ssd1306_t *p, uint32_t x, uint32_t y, int scale, char c);
 
 	/**
 		@brief draw string with given font
@@ -264,7 +281,7 @@ extern "C"
 		@param[in] font : pointer to font
 		@param[in] s : text to draw
 	*/
-	void ssd1306_draw_string_with_font(ssd1306_t *p, uint32_t x, uint32_t y, float scale, const uint8_t *font, const char *s);
+	void ssd1306_draw_string_with_font(ssd1306_t *p, uint32_t x, uint32_t y, int scale, const uint8_t *font, const char *s);
 
 	/**
 		@brief draw string with builtin font
@@ -275,7 +292,7 @@ extern "C"
 		@param[in] scale : scale font to n times of original size (default should be 1)
 		@param[in] s : text to draw
 	*/
-	void ssd1306_draw_string(ssd1306_t *p, uint32_t x, uint32_t y, float scale, const char *s);
+	void ssd1306_draw_string(ssd1306_t *p, uint32_t x, uint32_t y, int scale, const char *s);
 
 	/**
 		@brief ssd1306_set_text_inv
@@ -285,7 +302,16 @@ extern "C"
 	*/
 	void ssd1306_set_text_inv(ssd1306_t *p, const bool mode);
 
-	void ssd1306_printf(ssd1306_t *p, uint32_t x, uint32_t y, float scale, const char *fmt, ...);
+	void ssd1306_printf(ssd1306_t *p, uint32_t x, uint32_t y, int scale, const char *fmt, ...);
+
+	void ssd1306_init_tty(ssd1306_t *p, ssd1306_tty_t *tty, const uint8_t *font);
+
+	void ssd1306_tty_set_font(ssd1306_tty_t *tty, const uint8_t *font, int scale);
+
+	void ssd1306_tty_writechar(ssd1306_tty_t *tty, char c, uint8_t color);
+
+	void ssd1306_tty_puts(ssd1306_tty_t *tty, const char *s, uint8_t color);
+
 
 #ifdef __cplusplus
 }
