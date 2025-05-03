@@ -91,6 +91,9 @@ extern "C"
 		int scale;
 		int x; /* The x position */
 		int y; /* The y position */
+		int font_height;
+		int font_width;
+
 	} ssd1306_tty_t;
 
 	/**
@@ -311,6 +314,8 @@ extern "C"
 	void ssd1306_tty_writechar(ssd1306_tty_t *tty, char c, uint8_t color);
 
 	void ssd1306_tty_puts(ssd1306_tty_t *tty, const char *s, uint8_t color);
+
+	void ssd1306_tty_show(ssd1306_tty_t *tty);
 
 
 #ifdef __cplusplus

@@ -385,11 +385,11 @@ static void aaa(ssd1306_t *p);
 
 void ssd1306_tty_set_font(ssd1306_tty_t *tty, const uint8_t *font, int scale)
 {
-    int font_height = (font[0] * scale);
-    int font_width = (font[1] + font[2] * scale);
+    tty->font_height = (font[0] * scale);
+    tty->font_width = (font[1] * scale + font[2]);
 
-    tty->height = tty->ssd1306->height / font_height;
-    tty->width = tty->ssd1306->width / font_width;
+    tty->height = tty->ssd1306->height / tty->font_height;
+    tty->width = tty->ssd1306->width / tty->font_width;
 
     tty->font = font;
     tty->scale = scale;
@@ -475,6 +475,24 @@ void ssd1306_tty_dump(ssd1306_tty_t *tty)
     printf("---> DUMP\n");
 }
 
+void ssd1306_tty_show(ssd1306_tty_t *tty)
+{
+    for (int y = 0; y < tty->height; y++)
+    {
+        for (int x = 0; x < tty->width; x++)
+        {
+            char c = tty->buffer[y * tty->width + x];
+            putchar((c >= 32 && c <= 126) ? c : '.'); // printable ASCII or placeholder
+
+            int px = x * tty->font_width;
+            int py = y * tty->font_height;
+
+            ssd1306_draw_char_with_font(tty->ssd1306, px, py, tty->scale, tty->font, c);
+        }
+    }
+    ssd1306_show(tty->ssd1306);
+}
+
 void ssd1306_init_tty(ssd1306_t *p, ssd1306_tty_t *tty, const uint8_t *font)
 {
     tty->ssd1306 = p;
@@ -482,7 +500,7 @@ void ssd1306_init_tty(ssd1306_t *p, ssd1306_tty_t *tty, const uint8_t *font)
     tty->buffer = malloc(MAX_TTY_X * MAX_TTY_Y);
     tty->color = malloc(MAX_TTY_X * MAX_TTY_Y);
 
-    ssd1306_tty_set_font(tty, font, 1);
+    ssd1306_tty_set_font(tty, font, 2);
 
     ssd1306_tty_cls(tty);
 
@@ -494,6 +512,8 @@ void ssd1306_init_tty(ssd1306_t *p, ssd1306_tty_t *tty, const uint8_t *font)
     ssd1306_tty_puts(tty, "Line 6\n7!\n8888888888888888888888888888", 0);
     ssd1306_tty_dump(tty);
 
+    ssd1306_tty_show(tty);
+    sleep_ms(10 * 50 * 1000);
     // aaa(p);
 }
 
