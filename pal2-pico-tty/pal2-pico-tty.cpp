@@ -7,12 +7,11 @@
 #include "pico/cyw43_arch.h"
 #include "hardware/uart.h"
 #include "pico/binary_info.h"
-#include "malloc.h"
+//#include "malloc.h"
 #include "pico/time.h"
 #include "buttons.h"
 
 #include "sd-card/sd-card.h"
-#include "proj_hw.h"
 
 #include "font.h"
 
@@ -21,7 +20,7 @@
 #include "proj_hw.h"
 #include "tty_switch_passthrough.h"
 
-#define USB_TIMEOUT_US 1 * 1000000
+#define USB_TIMEOUT_US (1 * 1000000)
 
 static void reset_pal(void);
 void main_loop(ssd1306_tty_t *tty);
@@ -108,8 +107,6 @@ int main()
     // Example to turn on the Pico W LED
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
 
-    // Set up our UART
-    uart_init(PAL_UART, BAUD_RATE);
     // Set the TX and RX pins by using the function select on the GPIO
     // Set datasheet for more information on function select
     gpio_set_function(PAL_UART_TX_GPIO, GPIO_FUNC_UART);
@@ -192,38 +189,44 @@ void main_loop(ssd1306_tty_t *tty)
     ssd1306_tty_puts(tty, "Boot successful, in main loop\n", 0);
     ssd1306_tty_show(tty);
 
+
+    process_menu(tty);
+
     while (true)
     {
 
-        button_state_t btn = read_buttons_struct();
+        // button_state_t btn = read_buttons_struct();
 
-        if (btn.menu)
-        {
-            ssd1306_tty_puts(tty, "MENU pressed\n", 0);
-        }
-        if (btn.rewind)
-        {
-            ssd1306_tty_puts(tty, "REWIND pressed\n", 0);
-        }
-        if (btn.play)
-        {
-            ssd1306_tty_puts(tty, "PLAY pressed\n", 0);
-        }
-        if (btn.fast_forward)
-        {
-            ssd1306_tty_puts(tty, "FAST FORWARD pressed\n", 0);
-        }
-        if (btn.record)
-        {
-            ssd1306_tty_puts(tty, "RECORD pressed\n", 0);
-        }
-        ssd1306_tty_show(tty);
+        // if (btn.menu)
+        // {
+        //     ssd1306_tty_puts(tty, "MENU pressed\n", 0);
+        // }
+        // if (btn.rewind)
+        // {
+        //     ssd1306_tty_puts(tty, "REWIND pressed\n", 0);
+        // }
+        // if (btn.play)
+        // {
+        //     ssd1306_tty_puts(tty, "PLAY pressed\n", 0);
+        // }
+        // if (btn.fast_forward)
+        // {
+        //     ssd1306_tty_puts(tty, "FAST FORWARD pressed\n", 0);
+        // }
+        // if (btn.record)
+        // {
+        //     ssd1306_tty_puts(tty, "RECORD pressed\n", 0);
+        // }
+        // ssd1306_tty_show(tty);
+
+        bool idle = true;
 
         /* USB‑>PAL */
         int ch_usb = getchar_timeout_us(0);
         if (ch_usb != PICO_ERROR_TIMEOUT)
         {
             uart_putc_raw(PAL_UART, (uint8_t)ch_usb);
+            idle = false;
         }
 
         /* PAL‑>USB */
@@ -231,6 +234,11 @@ void main_loop(ssd1306_tty_t *tty)
         {
             int ch_pal = uart_getc(PAL_UART);
             putchar_raw(ch_pal);
+            idle = false;
+        }
+
+        if (idle) {
+            sleep_ms(100);
         }
     }
 }

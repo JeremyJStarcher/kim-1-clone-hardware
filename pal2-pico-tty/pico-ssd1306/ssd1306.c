@@ -528,7 +528,6 @@ void ssd1306_tty_printf(ssd1306_tty_t *tty, const char *fmt, ...)
     ssd1306_tty_puts(tty, buf, 0);
 }
 
-
 static void aaa(ssd1306_t *p)
 {
 
@@ -561,3 +560,4 @@ static void aaa(ssd1306_t *p)
         ssd1306_clear(p);
     }
 }
+
