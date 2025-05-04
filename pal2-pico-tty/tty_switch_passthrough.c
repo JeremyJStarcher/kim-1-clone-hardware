@@ -33,42 +33,8 @@ void init_switch_mirror(PIO pio, uint sm)
     pio_sm_set_enabled(pio, sm, true);
 }
 
-void jjs_init2()
+void switch_passthrough_init()
 {
-    printf("Measuring  pin activity\n");
-    gpio_set_dir(TTY_SWITCH1_INPUT, GPIO_IN);
-    gpio_set_dir(TTY_SWITCH2_OUTPUT, GPIO_IN);
-
-    int cnt[] = {0, 0, 0, 0};
-    for (int i = 0; i <= 100000; i++)
-    {
-
-        bool is_pressed1 = gpio_get(TTY_SWITCH1_INPUT);
-        if (is_pressed1)
-        {
-            cnt[1]++;
-        }
-        else
-        {
-            cnt[0]++;
-        }
-
-        bool is_pressed2 = gpio_get(TTY_SWITCH2_OUTPUT);
-        if (is_pressed2)
-        {
-            cnt[3]++;
-        }
-        else
-        {
-            cnt[2]++;
-        }
-    }
-    printf("%d %d %d %d\n", cnt[0], cnt[1], cnt[2], cnt[3]);
-}
-
-void jjs_init()
-{
-
     gpio_init(PAL_RESET_GPIO);
     gpio_init(TTY_SWITCH1_INPUT);
     gpio_init(TTY_SWITCH2_OUTPUT);
@@ -76,7 +42,6 @@ void jjs_init()
     gpio_set_dir(TTY_SWITCH1_INPUT, GPIO_IN);
     gpio_set_dir(TTY_SWITCH2_OUTPUT, GPIO_IN);
     gpio_put(TTY_SWITCH2_OUTPUT, 0);
-
 
     PIO pio = pio0;
     int sm = pio_claim_unused_sm(pio, true);

@@ -161,7 +161,7 @@ int main()
     ssd1306_tty_printf(&tty, "FREE RAM: %dK %d\n", freeK, mem_size1);
     ssd1306_tty_show(&tty);
 
-    jjs_init();
+    switch_passthrough_init();
 
     main_loop();
     while (false)

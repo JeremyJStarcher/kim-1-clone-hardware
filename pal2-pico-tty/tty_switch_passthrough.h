@@ -6,7 +6,7 @@ extern "C"
 #endif
 void init_switch_mirror(PIO pio, uint sm);
 void set_switch_mirror(PIO pio, uint sm, bool enable);
-void jjs_init(void);
+void switch_passthrough_init(void);
 void shutdown_switch_mirror(PIO pio, uint sm);
 
 #ifdef __cplusplus
