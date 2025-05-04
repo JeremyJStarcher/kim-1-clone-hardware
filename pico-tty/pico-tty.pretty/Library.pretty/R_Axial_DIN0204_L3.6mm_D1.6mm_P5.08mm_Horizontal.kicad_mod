@@ -1,0 +1,216 @@
+(footprint "R_Axial_DIN0204_L3.6mm_D1.6mm_P5.08mm_Horizontal"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(descr "Resistor, Axial_DIN0204 series, Axial, Horizontal, pin pitch=5.08mm, 0.167W, length*diameter=3.6*1.6mm^2, http://cdn-reichelt.de/documents/datenblatt/B400/1_4W%23YAG.pdf")
+	(tags "Resistor Axial_DIN0204 series Axial Horizontal pin pitch 5.08mm 0.167W length 3.6mm diameter 1.6mm")
+	(property "Reference" "REF**"
+		(at 2.54 -1.92 0)
+		(layer "F.SilkS")
+		(uuid "be387b69-f673-4f6f-8306-169be7b8cfac")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "330R"
+		(at 2.54 1.92 0)
+		(layer "F.Fab")
+		(uuid "5706372b-107b-48da-bdf3-e054519bf1a3")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "73fdfbff-8aec-4b4a-8cee-09206e763648")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "Resistor, small symbol"
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "f0141d63-87cd-480f-b503-e75571640c58")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr through_hole)
+	(fp_line
+		(start 0.62 -0.92)
+		(end 4.46 -0.92)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "bb1a953c-c723-4a34-af68-6953a8d5f1e4")
+	)
+	(fp_line
+		(start 0.62 0.92)
+		(end 4.46 0.92)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "175a1146-f519-460b-94ff-fff2777405ca")
+	)
+	(fp_line
+		(start -0.95 -1.05)
+		(end -0.95 1.05)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "a9d3570b-5650-4a12-804c-47f0089ac90c")
+	)
+	(fp_line
+		(start -0.95 1.05)
+		(end 6.03 1.05)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "452c8f9a-ee36-4477-828e-6e8036dc1861")
+	)
+	(fp_line
+		(start 6.03 -1.05)
+		(end -0.95 -1.05)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "1d6af84e-17fe-4f04-a106-2c23ee974080")
+	)
+	(fp_line
+		(start 6.03 1.05)
+		(end 6.03 -1.05)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "1209a8e3-0995-4f60-957e-5989ebfbe3bb")
+	)
+	(fp_line
+		(start 0 0)
+		(end 0.74 0)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "d7e2b6cd-d5ea-4b67-af58-1ab3a37c9689")
+	)
+	(fp_line
+		(start 0.74 -0.8)
+		(end 0.74 0.8)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "b3423600-2487-4e4e-acb2-4ed55de053b9")
+	)
+	(fp_line
+		(start 0.74 0.8)
+		(end 4.34 0.8)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "d082830d-c48a-4b36-99d5-e8bc43aa6323")
+	)
+	(fp_line
+		(start 4.34 -0.8)
+		(end 0.74 -0.8)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "727de669-992b-4c19-99d7-c97112820e97")
+	)
+	(fp_line
+		(start 4.34 0.8)
+		(end 4.34 -0.8)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "ac0c3745-9d90-4190-9e51-d0c6b9494089")
+	)
+	(fp_line
+		(start 5.08 0)
+		(end 4.34 0)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "3040845f-bc82-4228-b24a-4067c764578d")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 2.54 0 0)
+		(layer "F.Fab")
+		(uuid "ca0621fa-3d7b-4dd0-bf07-a3bc810aed3e")
+		(effects
+			(font
+				(size 0.72 0.72)
+				(thickness 0.108)
+			)
+		)
+	)
+	(pad "1" thru_hole circle
+		(at 0 0)
+		(size 1.4 1.4)
+		(drill 0.7)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "80bc0b5e-5023-4a91-8aa4-4efbd0d4891a")
+	)
+	(pad "2" thru_hole oval
+		(at 5.08 0)
+		(size 1.4 1.4)
+		(drill 0.7)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "75be34dd-80bc-43b8-ae9e-0585149d6056")
+	)
+	(embedded_fonts no)
+	(model "${KICAD9_3DMODEL_DIR}/Resistor_THT.3dshapes/R_Axial_DIN0204_L3.6mm_D1.6mm_P5.08mm_Horizontal.wrl"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

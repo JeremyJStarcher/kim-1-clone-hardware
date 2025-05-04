@@ -1,0 +1,224 @@
+(footprint "SOT-363_SC-70-6"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(descr "SOT-363, SC-70-6")
+	(tags "SOT-363 SC-70-6")
+	(property "Reference" "REF**"
+		(at -0.0925 0.055 90)
+		(layer "F.SilkS")
+		(uuid "6dccded7-eece-46b1-bd38-a86e2367b7f8")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "NC7WZ16P6X"
+		(at 0 2 180)
+		(layer "F.Fab")
+		(uuid "a3a61134-a80a-4714-a512-e0f0cd6f29ad")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "403b01d8-7bc7-43a5-9d03-585761989e9e")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "88d4afd2-d02f-44a1-9965-8f6b84d0a965")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_line
+		(start -0.7 1.16)
+		(end 0.7 1.16)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "0e0a62ee-3bde-410e-b847-9175ed9268c8")
+	)
+	(fp_line
+		(start 0.7 -1.16)
+		(end -1.2 -1.16)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "08cd006a-385d-475a-bd2f-baa63c98e265")
+	)
+	(fp_line
+		(start -1.6 -1.4)
+		(end -1.6 1.4)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "1a7b142c-bf08-43e3-a7d6-624760274e38")
+	)
+	(fp_line
+		(start -1.6 -1.4)
+		(end 1.6 -1.4)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "84dba914-6863-430e-81ef-3903696cf7df")
+	)
+	(fp_line
+		(start -1.6 1.4)
+		(end 1.6 1.4)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "3c9e8cd6-a148-4053-8489-6e4cd843c221")
+	)
+	(fp_line
+		(start 1.6 1.4)
+		(end 1.6 -1.4)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "7f2973c9-2757-472a-8177-67eec2406ce0")
+	)
+	(fp_line
+		(start -0.675 -0.6)
+		(end -0.675 1.1)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "d3ac81a9-6e12-43ed-974f-301b21ca0690")
+	)
+	(fp_line
+		(start -0.175 -1.1)
+		(end -0.675 -0.6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "abd04aec-fc86-46dd-a368-366a6889a50c")
+	)
+	(fp_line
+		(start 0.675 -1.1)
+		(end -0.175 -1.1)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "556d2309-2fbe-4ce5-8934-cae76c32e3f7")
+	)
+	(fp_line
+		(start 0.675 -1.1)
+		(end 0.675 1.1)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "a58d1156-4a6c-44d6-8b1b-6963ac7c0a44")
+	)
+	(fp_line
+		(start 0.675 1.1)
+		(end -0.675 1.1)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "10e2bafa-1137-40c1-aeac-34a947ff23ab")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 0 90)
+		(layer "F.Fab")
+		(uuid "c2e7e75c-f54b-484d-a98e-de6e912829c2")
+		(effects
+			(font
+				(size 0.5 0.5)
+				(thickness 0.075)
+			)
+		)
+	)
+	(pad "1" smd rect
+		(at -0.95 -0.65)
+		(size 0.65 0.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "4ad6e424-7619-407f-b915-4b544bd09901")
+	)
+	(pad "2" smd rect
+		(at -0.95 0)
+		(size 0.65 0.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "90dffa04-2e9e-4cd9-b199-becf2b67bc1a")
+	)
+	(pad "3" smd rect
+		(at -0.95 0.65)
+		(size 0.65 0.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "9da9c847-68f2-4045-b4df-ba0ffbb77a9d")
+	)
+	(pad "4" smd rect
+		(at 0.95 0.65)
+		(size 0.65 0.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "01f047b6-297d-4a53-b9b5-8065895e78df")
+	)
+	(pad "5" smd rect
+		(at 0.95 0)
+		(size 0.65 0.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "54a37958-2897-444c-bb2c-d347da7711aa")
+	)
+	(pad "6" smd rect
+		(at 0.95 -0.65)
+		(size 0.65 0.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "8099324c-eb5d-4442-bf68-cf7ee3f6e7ca")
+	)
+	(embedded_fonts no)
+	(model "${KICAD6_3DMODEL_DIR}/Package_TO_SOT_SMD.3dshapes/SOT-363_SC-70-6.wrl"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

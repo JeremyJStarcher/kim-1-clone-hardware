@@ -1,0 +1,296 @@
+(footprint "DIP-8_W7.62mm_LongPads"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(locked yes)
+	(layer "F.Cu")
+	(descr "8-lead though-hole mounted DIP package, row spacing 7.62 mm (300 mils), LongPads")
+	(tags "THT DIP DIL PDIP 2.54mm 7.62mm 300mil LongPads")
+	(property "Reference" "REF**"
+		(at 3.81 -2.33 0)
+		(layer "F.SilkS")
+		(uuid "8bd64088-b3b0-4d17-b125-64d6e64e99da")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "LM358"
+		(at 3.81 9.95 0)
+		(layer "F.Fab")
+		(uuid "6bb2729c-4f90-40b6-9d05-8d45e92b1ef7")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" "http://www.ti.com/lit/ds/symlink/lm2904-n.pdf"
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "fc258203-7a79-4097-8cef-ac51131068ce")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "Low-Power, Dual Operational Amplifiers, DIP-8/SOIC-8/TO-99-8"
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "15439b83-70b5-4cc7-9f38-46f0dc0aeb6c")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr through_hole)
+	(fp_line
+		(start 1.56 -1.33)
+		(end 1.56 8.95)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "859c8ede-971c-4e7e-afd6-76f5e25e6655")
+	)
+	(fp_line
+		(start 1.56 8.95)
+		(end 6.06 8.95)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "2bcc75f0-271e-4beb-91d5-6569f97462bc")
+	)
+	(fp_line
+		(start 2.81 -1.33)
+		(end 1.56 -1.33)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "2bde9974-bc9e-427b-9196-166b1199042a")
+	)
+	(fp_line
+		(start 6.06 -1.33)
+		(end 4.81 -1.33)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "4706ce53-675e-4e2d-91a2-51ee135f7b70")
+	)
+	(fp_line
+		(start 6.06 8.95)
+		(end 6.06 -1.33)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "698effe7-5fc0-46ec-ab19-ac783ad101f0")
+	)
+	(fp_arc
+		(start 4.81 -1.33)
+		(mid 3.81 -0.33)
+		(end 2.81 -1.33)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "626834a9-4334-4b78-b70e-10c7e9fac7ef")
+	)
+	(fp_line
+		(start -1.45 -1.55)
+		(end -1.45 9.15)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "2d17da61-4d18-4751-a985-e85ce8285b41")
+	)
+	(fp_line
+		(start -1.45 9.15)
+		(end 9.1 9.15)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "61550bea-edf1-476e-8438-0e869c0502b7")
+	)
+	(fp_line
+		(start 9.1 -1.55)
+		(end -1.45 -1.55)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "5ef05182-e5d1-40ba-86b5-6a004961128c")
+	)
+	(fp_line
+		(start 9.1 9.15)
+		(end 9.1 -1.55)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "96227d1a-7ce3-4024-9108-cd914720ea8e")
+	)
+	(fp_line
+		(start 0.635 -0.27)
+		(end 1.635 -1.27)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "76d00f38-c5dd-45ec-bde6-7821fa795b09")
+	)
+	(fp_line
+		(start 0.635 8.89)
+		(end 0.635 -0.27)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "49acd6ca-b4cb-4aad-8517-31a93a8d97b9")
+	)
+	(fp_line
+		(start 1.635 -1.27)
+		(end 6.985 -1.27)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "23c5873e-444b-4505-8f2d-e9fc464e3fdc")
+	)
+	(fp_line
+		(start 6.985 -1.27)
+		(end 6.985 8.89)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "6e3558b7-63eb-4c80-85f4-1501db95336b")
+	)
+	(fp_line
+		(start 6.985 8.89)
+		(end 0.635 8.89)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "5664948e-9840-403d-ab3e-b05ebbdda18c")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 3.81 3.81 0)
+		(layer "F.Fab")
+		(uuid "c69e3130-e4f9-4d38-84f5-b12ed62cc133")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" thru_hole rect
+		(at 0 0)
+		(size 2.4 1.6)
+		(drill 0.8)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "35115465-62a8-41b2-81ca-f0bd623459f0")
+	)
+	(pad "2" thru_hole oval
+		(at 0 2.54)
+		(size 2.4 1.6)
+		(drill 0.8)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "9d80f767-9642-4cae-8476-d0ef8fcfb833")
+	)
+	(pad "3" thru_hole oval
+		(at 0 5.08)
+		(size 2.4 1.6)
+		(drill 0.8)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "ce731635-38ad-4f34-a690-3c5fa218e205")
+	)
+	(pad "4" thru_hole oval
+		(at 0 7.62)
+		(size 2.4 1.6)
+		(drill 0.8)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "690e81d4-9711-4abd-bfb5-12cb08f0adf6")
+	)
+	(pad "5" thru_hole oval
+		(at 7.62 7.62)
+		(size 2.4 1.6)
+		(drill 0.8)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "2387a0a8-da54-4749-af7c-2b7113a2868d")
+	)
+	(pad "6" thru_hole oval
+		(at 7.62 5.08)
+		(size 2.4 1.6)
+		(drill 0.8)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "7fe52b30-172d-4dca-aa6f-9ddee290c33f")
+	)
+	(pad "7" thru_hole oval
+		(at 7.62 2.54)
+		(size 2.4 1.6)
+		(drill 0.8)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "44e9f915-ebd7-4477-af86-658ef1f4b249")
+	)
+	(pad "8" thru_hole oval
+		(at 7.62 0)
+		(size 2.4 1.6)
+		(drill 0.8)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "a39fa8f2-41b3-4d6d-bd32-1426592c74dd")
+	)
+	(embedded_fonts no)
+	(model "${KICAD8_3DMODEL_DIR}/Package_DIP.3dshapes/DIP-8_W7.62mm.wrl"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

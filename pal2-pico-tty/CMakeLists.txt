@@ -58,6 +58,7 @@ add_executable(
     pico-ssd1306/ssd1306.c
     proj_hw.c
     tty_switch_passthrough.c
+    buttons.c
 )
 
 pico_set_program_name(pal2-pico-tty "pal2-pico-tty")

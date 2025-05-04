@@ -1,0 +1,335 @@
+(footprint "SW_PUSH_6mm"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(locked yes)
+	(layer "F.Cu")
+	(descr "Generic 6mm SW tactile push button")
+	(tags "tact sw push 6mm")
+	(property "Reference" "REF**"
+		(at 3.25 -2 0)
+		(layer "F.SilkS")
+		(hide yes)
+		(uuid "5ee85122-9b26-46d6-a79a-a8178a0a0e41")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "<<"
+		(at 3.75 6.7 0)
+		(layer "F.SilkS" knockout)
+		(uuid "74311dd8-db60-445a-bee0-374cf533f9ad")
+		(effects
+			(font
+				(size 2 2)
+				(thickness 0.25)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "dadd7550-07bb-4dfa-819d-09693026fa35")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "Push button switch, generic, two pins"
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "7b3be501-fdde-4ca0-b8f2-d7378e6f0135")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr through_hole)
+	(fp_line
+		(start -0.25 1.5)
+		(end -0.25 3)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "9968af59-2ea1-4cdd-be1b-34e7383d0c1a")
+	)
+	(fp_line
+		(start 1 5.5)
+		(end 5.5 5.5)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "eab42764-45d2-48c9-b594-09f9f728300c")
+	)
+	(fp_line
+		(start 5.5 -1)
+		(end 1 -1)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "a9e7cb05-9ad6-4287-a9e7-568208b0abb1")
+	)
+	(fp_line
+		(start 6.75 3)
+		(end 6.75 1.5)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "71866420-2465-4cb6-bd0b-1446c4682071")
+	)
+	(fp_line
+		(start -1.5 -1.5)
+		(end -1.25 -1.5)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "a41f751d-6ff9-4a07-ba38-268e399c06d9")
+	)
+	(fp_line
+		(start -1.5 -1.25)
+		(end -1.5 -1.5)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "180b7249-3d90-43b8-8828-ae6980bf0505")
+	)
+	(fp_line
+		(start -1.5 5.75)
+		(end -1.5 -1.25)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "151fbc81-77b3-4942-a65e-3db6cd5f641b")
+	)
+	(fp_line
+		(start -1.5 5.75)
+		(end -1.5 6)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "299dced8-fbdd-42d3-9247-1f84b300f27a")
+	)
+	(fp_line
+		(start -1.5 6)
+		(end -1.25 6)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "bb2372b4-3912-45fe-ba4e-ed0d9fb37cf8")
+	)
+	(fp_line
+		(start -1.25 -1.5)
+		(end 7.75 -1.5)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "699d0af5-923a-40d9-83fd-4f7d5b7bfc7e")
+	)
+	(fp_line
+		(start 7.75 -1.5)
+		(end 8 -1.5)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "fc1ef695-a479-4282-9b1f-2ddbc7200b28")
+	)
+	(fp_line
+		(start 7.75 6)
+		(end -1.25 6)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "55310c80-5df8-48a9-bfa3-5ee8d3838d24")
+	)
+	(fp_line
+		(start 7.75 6)
+		(end 8 6)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "8bbfbe6b-7904-45db-9ad5-51bcab38b999")
+	)
+	(fp_line
+		(start 8 -1.5)
+		(end 8 -1.25)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "2f964deb-3835-49ec-a0c8-ff31109a04df")
+	)
+	(fp_line
+		(start 8 -1.25)
+		(end 8 5.75)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "fbfc8566-df3c-41fb-9f96-2cdafb1e60c7")
+	)
+	(fp_line
+		(start 8 6)
+		(end 8 5.75)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "d1a2a1a2-0cb2-42f6-8f9f-187551f0b08d")
+	)
+	(fp_line
+		(start 0.25 -0.75)
+		(end 3.25 -0.75)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "345fc0a7-5f85-459f-a516-c1b5423398b2")
+	)
+	(fp_line
+		(start 0.25 5.25)
+		(end 0.25 -0.75)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "2dbf39ca-9591-4f05-9aaa-374d68ccdb0d")
+	)
+	(fp_line
+		(start 3.25 -0.75)
+		(end 6.25 -0.75)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "0e64b674-ee2a-44b5-b5de-ace4ddaf4b4d")
+	)
+	(fp_line
+		(start 6.25 -0.75)
+		(end 6.25 5.25)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "044bf38a-c8c7-4a2b-b554-6c9d0bd97ed6")
+	)
+	(fp_line
+		(start 6.25 5.25)
+		(end 0.25 5.25)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "56f9b376-b443-4e09-839a-9552ba1a7758")
+	)
+	(fp_circle
+		(center 3.25 2.25)
+		(end 1.25 2.5)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "8a4c952f-e4bc-4523-98b4-b4485b9fcd74")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 3.25 2.25 0)
+		(layer "F.Fab")
+		(uuid "65086e6b-15c2-4299-a420-b3b084c3b955")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" thru_hole circle
+		(at 0 0 90)
+		(size 2 2)
+		(drill 1.1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "ff31c3bb-aa9a-4433-8756-ab820311d380")
+	)
+	(pad "1" thru_hole circle
+		(at 6.5 0 90)
+		(size 2 2)
+		(drill 1.1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "3b48ef8c-043e-49a7-b97f-5a331cdd1b1e")
+	)
+	(pad "2" thru_hole circle
+		(at 0 4.5 90)
+		(size 2 2)
+		(drill 1.1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "bd0fc78b-1698-4c56-bdaf-511edf8c6564")
+	)
+	(pad "2" thru_hole circle
+		(at 6.5 4.5 90)
+		(size 2 2)
+		(drill 1.1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "66d6ef23-8731-4aee-8866-90bc277105d6")
+	)
+	(embedded_fonts no)
+	(model "${KICAD9_3DMODEL_DIR}/Button_Switch_THT.3dshapes/SW_PUSH_6mm.wrl"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

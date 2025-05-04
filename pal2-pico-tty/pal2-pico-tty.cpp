@@ -9,6 +9,7 @@
 #include "pico/binary_info.h"
 #include "malloc.h"
 #include "pico/time.h"
+#include "buttons.h"
 
 #include "sd-card/sd-card.h"
 #include "proj_hw.h"
@@ -57,6 +58,8 @@ int main()
     wait_for_usb_with_timeout();
 
     configure_hardware();
+
+    init_buttons();
 
     // // Initialise the Wi-Fi chip
     // if (cyw43_arch_init()) {
@@ -186,12 +189,36 @@ void main_loop(ssd1306_tty_t *tty)
     ssd1306_tty_puts(tty, " done\n", 0);
     ssd1306_tty_show(tty);
 
-
     ssd1306_tty_puts(tty, "Boot successful, in main loop\n", 0);
     ssd1306_tty_show(tty);
 
     while (true)
     {
+
+        button_state_t btn = read_buttons_struct();
+
+        if (btn.menu)
+        {
+            ssd1306_tty_puts(tty, "MENU pressed\n", 0);
+        }
+        if (btn.rewind)
+        {
+            ssd1306_tty_puts(tty, "REWIND pressed\n", 0);
+        }
+        if (btn.play)
+        {
+            ssd1306_tty_puts(tty, "PLAY pressed\n", 0);
+        }
+        if (btn.fast_forward)
+        {
+            ssd1306_tty_puts(tty, "FAST FORWARD pressed\n", 0);
+        }
+        if (btn.record)
+        {
+            ssd1306_tty_puts(tty, "RECORD pressed\n", 0);
+        }
+        ssd1306_tty_show(tty);
+
         /* USB‑>PAL */
         int ch_usb = getchar_timeout_us(0);
         if (ch_usb != PICO_ERROR_TIMEOUT)

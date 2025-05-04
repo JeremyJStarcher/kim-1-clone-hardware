@@ -1,0 +1,320 @@
+(footprint "CUI_SJ-3523-audio-jack"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(descr "3.5 mm, Stereo, Right Angle, Surface Mount (SMT), Audio Jack Connector (https://www.cui.com/product/resource/sj-352x-smt-series.pdf)")
+	(tags "3.5mm audio cui horizontal jack stereo")
+	(property "Reference" "REF**"
+		(at 0.1 9.7 90)
+		(layer "F.SilkS")
+		(uuid "34665fac-e7a8-4097-9bc4-834af37c1dd1")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "AudioJack3"
+		(at 0 10.35 0)
+		(layer "F.Fab")
+		(uuid "7e92bb9b-e62c-4b4b-9aba-ea54a6cdb01e")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "c38ef351-6e2c-4e9c-b6b8-768686d88eb6")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "c2bd8d38-4bce-4b73-ad1b-103069254634")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_line
+		(start -3.1 -4.9)
+		(end -5.1 -4.9)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "3d533c25-b278-440b-820e-34196ccff285")
+	)
+	(fp_line
+		(start -3.1 -4.9)
+		(end -3.1 -6.1)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "2806aaa4-03ac-4fc7-b5ea-8b7225ecb894")
+	)
+	(fp_line
+		(start -3.1 -2.3)
+		(end -5.1 -2.3)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "626b43b2-3284-42aa-98a8-2eeaec57cc5d")
+	)
+	(fp_line
+		(start -3.1 4.2)
+		(end -3.1 -2.3)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "ac116afb-eb24-4316-ba5d-004d0eb1af9b")
+	)
+	(fp_line
+		(start -3.1 8.6)
+		(end -3.1 7.4)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "e752b671-affb-4707-bdf8-0f745ada6b94")
+	)
+	(fp_line
+		(start 2.6 -6.1)
+		(end 3.1 -6.1)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "6b79db9d-7ba4-4fee-be5c-aff44cb599df")
+	)
+	(fp_line
+		(start 3.1 -6.1)
+		(end 3.1 -2.9)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "9de61c29-076b-45fe-9710-5c24027ba222")
+	)
+	(fp_line
+		(start 3.1 -0.3)
+		(end 3.1 8.6)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "d7f25c6f-4a84-4219-acd8-134640b76f3b")
+	)
+	(fp_line
+		(start 3.1 8.6)
+		(end -3.1 8.6)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "62bd80cb-b4c8-4fdb-b3dc-e5bf45c6eb5c")
+	)
+	(fp_line
+		(start -5.6 -6.1)
+		(end 5.6 -6.1)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "9cf4529a-f913-4994-8f1c-567c79c66039")
+	)
+	(fp_line
+		(start -5.6 9)
+		(end -5.6 -6.1)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "c6819182-1977-4daf-8af5-43d832d4b6dd")
+	)
+	(fp_line
+		(start 5.6 -6.1)
+		(end 5.6 9)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "a9d82dd8-bc0e-4745-aecf-5cff20a9ffd1")
+	)
+	(fp_line
+		(start 5.6 9)
+		(end -5.6 9)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "fa3a8451-83fe-4f47-a87a-e5a18661c176")
+	)
+	(fp_line
+		(start -3 -6)
+		(end -2.5 -6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "308991bd-6c02-41a1-9b71-21f33885d7ad")
+	)
+	(fp_line
+		(start -3 8.5)
+		(end -3 -6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "a43f531a-0e7b-41b8-8d9f-973738002af8")
+	)
+	(fp_line
+		(start -2.5 -8.5)
+		(end 2.5 -8.5)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "f5a4a5be-1972-4d06-b404-e27bd117557e")
+	)
+	(fp_line
+		(start -2.5 -6)
+		(end -2.5 -8.5)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "674f6cd7-42cc-4967-b3c3-b84d8eb9b407")
+	)
+	(fp_line
+		(start 2.5 -8.5)
+		(end 2.5 -6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "a4471994-1f15-42fc-875c-aee3287f5ddd")
+	)
+	(fp_line
+		(start 2.5 -6)
+		(end 3 -6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "99148c20-69a9-4f8e-8400-a846ade8aa3b")
+	)
+	(fp_line
+		(start 3 -6)
+		(end 3 8.5)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "cf2ecb0d-bc22-4540-a877-b28232b88dee")
+	)
+	(fp_line
+		(start 3 8.5)
+		(end -3 8.5)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "4a7f2dbb-0cc9-4676-bc33-e207084082a6")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(uuid "ad021810-3dd4-45e0-9a4f-34f6bc0d5611")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "" np_thru_hole circle
+		(at 0 -2.5)
+		(size 1.7 1.7)
+		(drill 1.7)
+		(layers "*.Cu" "*.Mask")
+		(uuid "d3e80aa6-d7ae-4c7d-9b74-79237931764d")
+	)
+	(pad "" np_thru_hole circle
+		(at 0 4.5)
+		(size 1.7 1.7)
+		(drill 1.7)
+		(layers "*.Cu" "*.Mask")
+		(uuid "d3585f07-20b1-44e3-a57c-0ca25f7bbfd0")
+	)
+	(pad "1" smd rect
+		(at -3.7 -3.6)
+		(size 2.8 2.2)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "446b1a09-5f84-44fc-8b84-ec4bb3b8ebb2")
+	)
+	(pad "2" smd rect
+		(at -3.7 5.8)
+		(size 2.8 2.8)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "e4410735-175f-4e95-8750-534cf1d7c5ff")
+	)
+	(pad "3" smd rect
+		(at 3.7 -1.6)
+		(size 2.8 2.2)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "6888f007-fd93-4eb7-af10-916e08f16cf3")
+	)
+	(embedded_fonts no)
+	(model "CUI_DEVICES_SJ-3523-SMT-TR.step"
+		(offset
+			(xyz 0 6 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz -90 0 90)
+		)
+	)
+)
