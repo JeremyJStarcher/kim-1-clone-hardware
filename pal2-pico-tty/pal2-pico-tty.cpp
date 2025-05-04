@@ -22,11 +22,8 @@
 
 #define USB_TIMEOUT_US 1 * 1000000
 
-
 static void reset_pal(void);
-static void set_tty_mode(bool enable);
-static void ssd1306_set_status(ssd1306_t *disp, const char *s);
-static void main_loop();
+void main_loop(ssd1306_tty_t *tty);
 
 void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq)
 {
@@ -40,17 +37,18 @@ void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq)
     pio->txf[sm] = (125000000 / (2 * freq)) - 3;
 }
 
-
-static void wait_for_usb_with_timeout() {
+static void wait_for_usb_with_timeout()
+{
     uint64_t start_time = time_us_64();
-    while (!stdio_usb_connected()) {
-        if (time_us_64() - start_time >= USB_TIMEOUT_US) {
+    while (!stdio_usb_connected())
+    {
+        if (time_us_64() - start_time >= USB_TIMEOUT_US)
+        {
             break;
         }
         tight_loop_contents();
     }
 }
-
 
 int main()
 {
@@ -65,7 +63,6 @@ int main()
     //     printf("Wi-Fi init failed\n");
     //     return -1;
     // }
-
 
     /* --- UART setup ------------------------------------------------------ */
     uart_init(PAL_UART, BAUD_RATE);
@@ -163,14 +160,13 @@ int main()
 
     switch_passthrough_init();
 
-    main_loop();
+    main_loop(&tty);
     while (false)
     {
         //  printf("Hello, world!\n");
         sleep_ms(1000);
     }
 }
-
 
 static void reset_pal(void)
 {
@@ -181,9 +177,18 @@ static void reset_pal(void)
     gpio_set_dir(PAL_RESET_GPIO, GPIO_IN); /* release */
 }
 
-void main_loop()
+void main_loop(ssd1306_tty_t *tty)
 {
+    ssd1306_tty_puts(tty, "Restting PAL...", 0);
+    ssd1306_tty_show(tty);
+
     reset_pal();
+    ssd1306_tty_puts(tty, " done\n", 0);
+    ssd1306_tty_show(tty);
+
+
+    ssd1306_tty_puts(tty, "Boot successful, in main loop\n", 0);
+    ssd1306_tty_show(tty);
 
     while (true)
     {

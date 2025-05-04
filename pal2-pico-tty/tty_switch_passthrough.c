@@ -7,7 +7,7 @@
 
 #include "proj_hw.h"
 
-void init_switch_mirror(PIO pio, uint sm)
+void enable_switch_mirror(PIO pio, uint sm)
 {
     uint offset = pio_add_program(pio, &tty_switch_passthrough_program);
     pio_sm_config c = tty_switch_passthrough_program_get_default_config(offset);
@@ -51,14 +51,14 @@ void switch_passthrough_init()
         panic("No available state machines!");
     }
 
-    init_switch_mirror(pio, (uint)sm);
+    enable_switch_mirror(pio, (uint)sm);
     printf("State machine init\n");
 
-    sleep_ms(10 * 1000);
-    shutdown_switch_mirror(pio, sm);
+    // sleep_ms(10 * 1000);
+    disable_switch_mirror(pio, sm);
 }
 
-void shutdown_switch_mirror(PIO pio, uint sm)
+void disable_switch_mirror(PIO pio, uint sm)
 {
     // Disable the state machine
     pio_sm_set_enabled(pio, sm, false);

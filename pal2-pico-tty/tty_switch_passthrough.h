@@ -4,10 +4,10 @@
 extern "C"
 {
 #endif
-void init_switch_mirror(PIO pio, uint sm);
+void enable_switch_mirror(PIO pio, uint sm);
 void set_switch_mirror(PIO pio, uint sm, bool enable);
 void switch_passthrough_init(void);
-void shutdown_switch_mirror(PIO pio, uint sm);
+void disable_switch_mirror(PIO pio, uint sm);
 
 #ifdef __cplusplus
 }
