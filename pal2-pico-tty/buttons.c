@@ -39,15 +39,17 @@ button_state_t read_buttons_struct(void)
 
 int menu_select(ssd1306_tty_t *tty, menu_list_t items, int item_count)
 {
-    int MAX_VISIBLE_ITEMS = tty->height;
+    int MAX_VISIBLE_ITEMS = MIN(tty->height, item_count);
 
     int selected_index = 0;
     int top_index = 0;
 
+    printf("MAX_VISIBLE_ITEMS %d\n", MAX_VISIBLE_ITEMS);
+
     while (true)
     {
         // Clear the display buffer
-        ssd1306_clear(tty->ssd1306);
+        ssd1306_tty_cls(tty);
 
         // Display the visible portion of the menu
         for (int i = 0; i < MAX_VISIBLE_ITEMS; ++i)
@@ -65,8 +67,13 @@ int menu_select(ssd1306_tty_t *tty, menu_list_t items, int item_count)
             {
                 snprintf(line, sizeof(line), "  %s", items[item_idx]);
             }
+            // Prevent the line from running off the screen
+            line[tty->width] = 0;
 
-            ssd1306_tty_puts(tty, "\n", 0);
+            if (i != 0)
+            {
+                ssd1306_tty_puts(tty, "\n", 0);
+            }
             ssd1306_tty_puts(tty, line, 0);
         }
 
@@ -116,16 +123,31 @@ void process_menu(ssd1306_tty_t *tty)
 {
 
     menu_item_t menu_items[] = {
-        "Send File",
-        "Settings",
-        "Baud Rate",
-        "Character Delay",
-        "Line Delay",
-        "Option 6",
-        "Option 7",
-        "Option 8",
-        "Option 9",
-        "Option 10"};
+        // { "Send File",      send_file_callback },
+        // { "Settings",       settings_callback },
+        // { "Baud Rate",      baud_rate_callback },
+        // { "Character Delay", NULL },
+        {"LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLl", NULL},
+        {"Op", NULL},
+        {"Opt", NULL},
+        {"Option 8", NULL},
+        {"Option 9", NULL},
+        {"Option 10", NULL},
+        {"Line Delay", NULL},
+        {"Option 6", NULL},
+        {"Option 7", NULL},
+        {"Option 8", NULL},
+        {"Option 9", NULL},
+        {"Option 10", NULL},
+        {"Line Delay", NULL},
+        {"Option 6", NULL},
+        {"Option 7", NULL},
+        {"Option 8", NULL},
+        {"Option 9", NULL},
+        {"Option 10", NULL},
+    };
+
+    ssd1306_tty_set_scale(tty, 2);
 
     int selected = menu_select(tty, menu_items, sizeof(menu_items) / sizeof(menu_items[0]));
 
@@ -134,11 +156,11 @@ void process_menu(ssd1306_tty_t *tty)
     if (selected >= 0)
     {
         // Handle the selected menu item
-        printf("Selected: %s\n", menu_items[selected]);
+        //   printf("Selected: %s\n", menu_items[selected]);
     }
     else
     {
         // Handle menu exit
-        printf("Menu closed.\n");
+        //   printf("Menu closed.\n");
     }
 }

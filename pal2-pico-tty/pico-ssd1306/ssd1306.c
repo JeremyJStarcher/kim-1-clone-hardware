@@ -383,16 +383,23 @@ static void aaa(ssd1306_t *p);
 #define MAX_TTY_X 80
 #define MAX_TTY_Y 25
 
+void ssd1306_tty_set_scale(ssd1306_tty_t *tty, int scale)
+{
+
+    tty->font_height = (tty->font[0] * scale);
+    tty->font_width = (tty->font[1] * scale + tty->font[2]);
+    tty->scale = scale;
+    tty->height = tty->ssd1306->height / tty->font_height;
+    tty->width = tty->ssd1306->width / tty->font_width;
+    printf("TTY CONFIG: height/width %d/%d\n", tty->height, tty->width);
+}
+
 void ssd1306_tty_set_font(ssd1306_tty_t *tty, const uint8_t *font, int scale)
 {
     tty->font_height = (font[0] * scale);
     tty->font_width = (font[1] * scale + font[2]);
-
-    tty->height = tty->ssd1306->height / tty->font_height;
-    tty->width = tty->ssd1306->width / tty->font_width;
-
     tty->font = font;
-    tty->scale = scale;
+    ssd1306_tty_set_scale(tty, scale);
 
     printf("TTY CONFIG: height/width %d/%d\n", tty->height, tty->width);
 }
@@ -413,6 +420,7 @@ void ssd1306_tty_scroll(ssd1306_tty_t *tty)
 
 void ssd1306_tty_cls(ssd1306_tty_t *tty)
 {
+    ssd1306_clear(tty->ssd1306);
     memset(tty->buffer, ' ', tty->width * tty->height);
     memset(tty->color, 0, tty->width * tty->height);
     tty->x = 0;
@@ -482,10 +490,10 @@ void ssd1306_tty_show(ssd1306_tty_t *tty)
         for (int x = 0; x < tty->width; x++)
         {
             char c = tty->buffer[y * tty->width + x];
-            putchar((c >= 32 && c <= 126) ? c : '.'); // printable ASCII or placeholder
+            // putchar((c >= 32 && c <= 126) ? c : '.'); // printable ASCII or placeholder
 
-            int px = x * tty->font_width;
-            int py = y * tty->font_height;
+            int px = x * (tty->font_width);
+            int py = y * (tty->font_height);
 
             ssd1306_draw_char_with_font(tty->ssd1306, px, py, tty->scale, tty->font, c);
         }
@@ -560,4 +568,3 @@ static void aaa(ssd1306_t *p)
         ssd1306_clear(p);
     }
 }
-

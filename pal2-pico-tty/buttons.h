@@ -21,9 +21,16 @@ extern "C"
         bool record;
     } button_state_t;
 
-    typedef const char *menu_item_t;
-    typedef menu_item_t *menu_list_t;
+    // typedef const char *menu_item_t;
+    // typedef menu_item_t *menu_list_t;
     typedef void (*menu_callback_t)(void);
+
+    typedef struct {
+        const char *label;
+        menu_callback_t callback;  // May be NULL
+    } menu_item_t;
+
+    typedef const menu_item_t *menu_list_t;
 
     void init_buttons(void);
 
