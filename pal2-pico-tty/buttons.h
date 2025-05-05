@@ -4,7 +4,7 @@ extern "C"
 {
 #endif
 
-    #include "ssd1306.h"
+#include "ssd1306.h"
 
     const uint PIN_MENU = 12;
     const uint PIN_REWIND = 6;
@@ -21,10 +21,17 @@ extern "C"
         bool record;
     } button_state_t;
 
+    typedef const char *menu_item_t;
+    typedef menu_item_t *menu_list_t;
+    typedef void (*menu_callback_t)(void);
+
     void init_buttons(void);
 
     button_state_t read_buttons_struct(void);
-    int menu_select(ssd1306_tty_t *tty, const char **items, int item_count);
+
+    int menu_select(ssd1306_tty_t *tty, menu_list_t items, int item_count);
+
+
     void process_menu(ssd1306_tty_t *tty);
 
 #ifdef __cplusplus

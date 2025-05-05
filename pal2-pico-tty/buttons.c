@@ -37,7 +37,7 @@ button_state_t read_buttons_struct(void)
     return state;
 }
 
-int menu_select(ssd1306_tty_t *tty, const char **items, int item_count)
+int menu_select(ssd1306_tty_t *tty, menu_list_t items, int item_count)
 {
     int MAX_VISIBLE_ITEMS = tty->height;
 
@@ -115,7 +115,7 @@ int menu_select(ssd1306_tty_t *tty, const char **items, int item_count)
 void process_menu(ssd1306_tty_t *tty)
 {
 
-    const char *menu_items[] = {
+    menu_item_t menu_items[] = {
         "Send File",
         "Settings",
         "Baud Rate",
