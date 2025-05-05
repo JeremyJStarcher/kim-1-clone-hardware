@@ -29,11 +29,13 @@ SOFTWARE.
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 #include "ssd1306.h"
 #include "font.h"
 
 static bool text_inv_mode = false;
+void ssd1306_tty_show2(ssd1306_tty_t *tty);
 
 inline static void swap(int32_t *a, int32_t *b)
 {
@@ -483,7 +485,7 @@ void ssd1306_tty_dump(ssd1306_tty_t *tty)
     printf("---> DUMP\n");
 }
 
-void ssd1306_tty_show(ssd1306_tty_t *tty)
+void ssd1306_tty_show2(ssd1306_tty_t *tty)
 {
     for (int y = 0; y < tty->height; y++)
     {
@@ -499,6 +501,21 @@ void ssd1306_tty_show(ssd1306_tty_t *tty)
         }
     }
     ssd1306_show(tty->ssd1306);
+}
+
+
+ void ssd1306_tty_show(ssd1306_tty_t *tty)
+{
+    ssd1306_tty_show2(tty);               // original routine
+    return;
+
+    uint64_t t0 = time_us_64();          // start‑stamp
+    ssd1306_tty_show2(tty);               // original routine
+    uint64_t dt = time_us_64() - t0;     // elapsed
+
+    printf("Time to draw screen %" PRIu64 " µs\n", dt);
+    //    return (uint32_t)dt;                 // ≤ ~71 min fits in 32 bits
+
 }
 
 void ssd1306_init_tty(ssd1306_t *p, ssd1306_tty_t *tty, const uint8_t *font)

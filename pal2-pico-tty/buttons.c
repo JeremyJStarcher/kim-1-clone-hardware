@@ -24,7 +24,7 @@ typedef struct
     bool is_repeat;
 } btn_fsm_t;
 
-static btn_fsm_t btn_fsm[5]; // one entry per button, index order = pins[]
+static  btn_fsm_t btn_fsm[5]; // one entry per button, index order = pins[]
 
 // Array of all button pins
 static const uint8_t button_pins[] = {
