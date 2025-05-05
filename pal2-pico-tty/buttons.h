@@ -6,28 +6,33 @@ extern "C"
 
 #include "ssd1306.h"
 
-    const uint PIN_MENU = 12;
-    const uint PIN_REWIND = 6;
-    const uint PIN_PLAY = 7;
-    const uint PIN_FASTFORWARD = 3;
-    const uint PIN_RECORD = 2;
+    const uint8_t PIN_MENU = 12;
+    const uint8_t PIN_REWIND = 6;
+    const uint8_t PIN_PLAY = 7;
+    const uint8_t PIN_FASTFORWARD = 3;
+    const uint8_t PIN_RECORD = 2;
+
+    const uint8_t BUTTON_STATE_NONE = 0;
+    const uint8_t BUTTON_STATE_PRESSED = 1;
+    const uint8_t BUTTON_STATE_REPEAT = 2;
 
     typedef struct
     {
-        bool menu;
-        bool rewind;
-        bool play;
-        bool fast_forward;
-        bool record;
+        int menu;
+        int rewind;
+        int play;
+        int fast_forward;
+        int record;
     } button_state_t;
 
     // typedef const char *menu_item_t;
     // typedef menu_item_t *menu_list_t;
     typedef void (*menu_callback_t)(ssd1306_tty_t *tty);
 
-    typedef struct {
+    typedef struct
+    {
         const char *label;
-        menu_callback_t callback;  // May be NULL
+        menu_callback_t callback; // May be NULL
     } menu_item_t;
 
     typedef const menu_item_t *menu_list_t;

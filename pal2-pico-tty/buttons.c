@@ -5,15 +5,41 @@
 
 #include "buttons.h"
 
+/* ----------------------------------------------------------------
+ *  Per‑build tuning — adjust to taste
+ * ---------------------------------------------------------------- */
+#define DEBOUNCE_US (20 * 1000)     //  mechanical bounce mask
+#define REPEAT_DELAY_US (500 * 1000) //  before first repeat
+#define REPEAT_RATE_US (150 * 1000) // 150 ms: between repeats
+
+/* ----------------------------------------------------------------
+ *  Internal bookkeeping for each physical key
+ * ---------------------------------------------------------------- */
+typedef struct
+{
+    bool stable;          // debounced logical level (0 = up, 1 = down)
+    bool last_raw;        // last raw sample
+    uint64_t t_last_edge; // when raw last *changed*
+    uint64_t t_last_emit; // when we last produced a pulse
+    bool is_repeat;
+} btn_fsm_t;
+
+static btn_fsm_t btn_fsm[5]; // one entry per button, index order = pins[]
+
+// Array of all button pins
+static const uint8_t button_pins[] = {
+    PIN_MENU,
+    PIN_REWIND,
+    PIN_PLAY,
+    PIN_FASTFORWARD,
+    PIN_RECORD};
+
+////////////////////////////////
+
+///////////////////
+
 void init_buttons(void)
 {
-    // Array of all button pins
-    const uint8_t button_pins[] = {
-        PIN_MENU,
-        PIN_REWIND,
-        PIN_PLAY,
-        PIN_FASTFORWARD,
-        PIN_RECORD};
 
     for (int i = 0; i < sizeof(button_pins) / sizeof(button_pins[0]); ++i)
     {
@@ -22,19 +48,92 @@ void init_buttons(void)
         gpio_set_dir(pin, GPIO_IN); // Set as input
         gpio_pull_up(pin);          // Enable internal pull-up
     }
+
+    uint64_t now = time_us_64();
+    for (size_t i = 0; i < sizeof(button_pins) / sizeof(button_pins[0]); ++i)
+    {
+        btn_fsm[i].stable = false; // released
+        btn_fsm[i].last_raw = false;
+        btn_fsm[i].t_last_edge = now;
+        btn_fsm[i].t_last_emit = 0;
+    }
 }
 
+/* ----------------------------------------------------------------
+ *  read_buttons_struct()
+ *  – non‑blocking debounce + repeat generator
+ *    Returns a one‑shot “event” pulse for each key.
+ * ---------------------------------------------------------------- */
 button_state_t read_buttons_struct(void)
 {
-    button_state_t state;
+    button_state_t event = {0};
+    uint64_t now = time_us_64();
 
-    state.menu = !gpio_get(PIN_MENU);
-    state.rewind = !gpio_get(PIN_REWIND);
-    state.play = !gpio_get(PIN_PLAY);
-    state.fast_forward = !gpio_get(PIN_FASTFORWARD);
-    state.record = !gpio_get(PIN_RECORD);
+    for (size_t i = 0; i < 5; ++i)
+    {
 
-    return state;
+        /* 1. Sample hardware (active‑low) */
+        bool raw = !gpio_get(button_pins[i]);
+
+        /* 2. Edge detection for debounce */
+        if (raw != btn_fsm[i].last_raw)
+        {
+            btn_fsm[i].last_raw = raw;
+            btn_fsm[i].t_last_edge = now; // reset debounce timer
+        }
+
+        /* 3. If stable longer than DEBOUNCE_US, accept new state */
+        if ((now - btn_fsm[i].t_last_edge) >= DEBOUNCE_US &&
+            raw != btn_fsm[i].stable)
+        {
+
+            btn_fsm[i].stable = raw;
+            btn_fsm[i].t_last_emit = now;
+            btn_fsm[i].is_repeat = false;
+
+            if (raw)
+            { // rising edge → emit pulse
+                if (i == 0)
+                {
+                    printf("MENU PRESSED\n");
+                    event.menu = BUTTON_STATE_PRESSED;
+                }
+                if (i == 1)
+                    event.rewind = BUTTON_STATE_PRESSED;
+                if (i == 2)
+                    event.play = BUTTON_STATE_PRESSED;
+                if (i == 3)
+                    event.fast_forward = BUTTON_STATE_PRESSED;
+                if (i == 4)
+                    event.record = BUTTON_STATE_PRESSED;
+            }
+        }
+
+        /* 4. Held‑down state → handle repeats */
+        if (btn_fsm[i].stable)
+        {
+            uint64_t gap = btn_fsm[i].is_repeat ? REPEAT_RATE_US : REPEAT_DELAY_US;
+
+            if ((now - btn_fsm[i].t_last_emit) >= gap) // enough time since first press
+            {
+                btn_fsm[i].is_repeat = true;
+                btn_fsm[i].t_last_emit = now;
+
+                if (i == 0)
+                    event.menu = BUTTON_STATE_REPEAT;
+                if (i == 1)
+                    event.rewind = BUTTON_STATE_REPEAT;
+                if (i == 2)
+                    event.play = BUTTON_STATE_REPEAT;
+                if (i == 3)
+                    event.fast_forward = BUTTON_STATE_REPEAT;
+                if (i == 4)
+                    event.record = BUTTON_STATE_REPEAT;
+            }
+        }
+    }
+
+    return event; // 1 = “new press” or “repeat pulse”, 0 = idle
 }
 
 int menu_select(ssd1306_tty_t *tty, menu_list_t items, int item_count)
@@ -105,11 +204,11 @@ int menu_select(ssd1306_tty_t *tty, menu_list_t items, int item_count)
                 }
             }
         }
-        else if (btn.play)
+        else if (btn.play == BUTTON_STATE_PRESSED)
         {
             return selected_index;
         }
-        else if (btn.menu)
+        else if (btn.menu == BUTTON_STATE_PRESSED)
         {
             return -1;
         }

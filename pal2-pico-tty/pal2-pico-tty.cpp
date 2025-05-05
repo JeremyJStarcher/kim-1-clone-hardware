@@ -231,7 +231,7 @@ void main_loop(ssd1306_tty_t *tty)
         {
             button_state_t btn = read_buttons_struct();
 
-            if (btn.menu)
+            if (btn.menu == BUTTON_STATE_PRESSED)
             {
                 ssd1306_tty_puts(tty, "MENU pressed\n", 0);
 
@@ -243,7 +243,7 @@ void main_loop(ssd1306_tty_t *tty)
             }
             else
             {
-                sleep_ms(100);
+                sleep_ms(10);
             }
         }
     }
