@@ -119,7 +119,24 @@ int menu_select(ssd1306_tty_t *tty, menu_list_t items, int item_count)
     }
 }
 
-void process_menu(ssd1306_tty_t *tty)
+void menu_about(ssd1306_tty_t *tty)
+{
+    ssd1306_tty_cls(tty);
+    ssd1306_tty_puts(tty, "ABOUT", 0);
+    ssd1306_tty_show(tty);
+
+    while (true)
+    {
+        button_state_t btn = read_buttons_struct();
+        if (btn.menu)
+        {
+            return;
+        }
+        sleep_ms(100);
+    }
+}
+
+int process_menu(ssd1306_tty_t *tty)
 {
 
     menu_item_t menu_items[] = {
@@ -127,7 +144,7 @@ void process_menu(ssd1306_tty_t *tty)
         // { "Settings",       settings_callback },
         // { "Baud Rate",      baud_rate_callback },
         // { "Character Delay", NULL },
-        {"LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLl", NULL},
+        {"ABOUT", menu_about},
         {"Op", NULL},
         {"Opt", NULL},
         {"Option 8", NULL},
@@ -149,18 +166,27 @@ void process_menu(ssd1306_tty_t *tty)
 
     ssd1306_tty_set_scale(tty, 2);
 
-    int selected = menu_select(tty, menu_items, sizeof(menu_items) / sizeof(menu_items[0]));
-
-    ssd1306_clear(tty->ssd1306);
-
-    if (selected >= 0)
+    while (true)
     {
-        // Handle the selected menu item
-        //   printf("Selected: %s\n", menu_items[selected]);
-    }
-    else
-    {
-        // Handle menu exit
-        //   printf("Menu closed.\n");
+        int selected = menu_select(tty, menu_items, sizeof(menu_items) / sizeof(menu_items[0]));
+
+        ssd1306_clear(tty->ssd1306);
+
+        if (selected >= 0)
+        {
+            menu_item_t item = menu_items[selected];
+            if (item.callback != NULL)
+            {
+                item.callback(tty);
+            }
+            else
+            {
+                return selected;
+            }
+        }
+        else
+        {
+            return selected;
+        }
     }
 }

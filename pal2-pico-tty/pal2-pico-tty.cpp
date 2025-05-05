@@ -7,7 +7,7 @@
 #include "pico/cyw43_arch.h"
 #include "hardware/uart.h"
 #include "pico/binary_info.h"
-//#include "malloc.h"
+// #include "malloc.h"
 #include "pico/time.h"
 #include "buttons.h"
 
@@ -189,18 +189,8 @@ void main_loop(ssd1306_tty_t *tty)
     ssd1306_tty_puts(tty, "Boot successful, in main loop\n", 0);
     ssd1306_tty_show(tty);
 
-
-    process_menu(tty);
-
     while (true)
     {
-
-        // button_state_t btn = read_buttons_struct();
-
-        // if (btn.menu)
-        // {
-        //     ssd1306_tty_puts(tty, "MENU pressed\n", 0);
-        // }
         // if (btn.rewind)
         // {
         //     ssd1306_tty_puts(tty, "REWIND pressed\n", 0);
@@ -237,8 +227,24 @@ void main_loop(ssd1306_tty_t *tty)
             idle = false;
         }
 
-        if (idle) {
-            sleep_ms(100);
+        if (idle)
+        {
+            button_state_t btn = read_buttons_struct();
+
+            if (btn.menu)
+            {
+                ssd1306_tty_puts(tty, "MENU pressed\n", 0);
+
+                process_menu(tty);
+
+                ssd1306_tty_cls(tty);
+                ssd1306_tty_puts(tty, " LEFT MENU\n", 0);
+                ssd1306_tty_show(tty);
+            }
+            else
+            {
+                sleep_ms(100);
+            }
         }
     }
 }

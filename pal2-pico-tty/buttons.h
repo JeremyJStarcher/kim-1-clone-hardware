@@ -23,7 +23,7 @@ extern "C"
 
     // typedef const char *menu_item_t;
     // typedef menu_item_t *menu_list_t;
-    typedef void (*menu_callback_t)(void);
+    typedef void (*menu_callback_t)(ssd1306_tty_t *tty);
 
     typedef struct {
         const char *label;
@@ -37,9 +37,7 @@ extern "C"
     button_state_t read_buttons_struct(void);
 
     int menu_select(ssd1306_tty_t *tty, menu_list_t items, int item_count);
-
-
-    void process_menu(ssd1306_tty_t *tty);
+    int process_menu(ssd1306_tty_t *tty);
 
 #ifdef __cplusplus
 }

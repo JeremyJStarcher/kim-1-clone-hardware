@@ -318,7 +318,8 @@ extern "C"
 	void ssd1306_tty_show(ssd1306_tty_t *tty);
 
 	void ssd1306_tty_printf(ssd1306_tty_t *tty, const char *fmt, ...);
-
+	void ssd1306_tty_cls(ssd1306_tty_t *tty);
+	void ssd1306_tty_set_scale(ssd1306_tty_t *tty, int scale);
 
 #ifdef __cplusplus
 }
