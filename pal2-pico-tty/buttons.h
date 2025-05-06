@@ -18,11 +18,12 @@ extern "C"
 
     typedef struct
     {
-        int menu;
-        int rewind;
-        int play;
-        int fast_forward;
-        int record;
+        uint8_t menu;
+        uint8_t rewind;
+        uint8_t play;
+        uint8_t fast_forward;
+        uint8_t record;
+        bool any;
     } button_state_t;
 
     // typedef const char *menu_item_t;

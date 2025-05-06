@@ -307,16 +307,12 @@ extern "C"
 
 	void ssd1306_printf(ssd1306_t *p, uint32_t x, uint32_t y, int scale, const char *fmt, ...);
 
+	
 	void ssd1306_init_tty(ssd1306_t *p, ssd1306_tty_t *tty, const uint8_t *font);
-
 	void ssd1306_tty_set_font(ssd1306_tty_t *tty, const uint8_t *font, int scale);
-
-	void ssd1306_tty_writechar(ssd1306_tty_t *tty, char c, uint8_t color);
-
-	void ssd1306_tty_puts(ssd1306_tty_t *tty, const char *s, uint8_t color);
-
+	void ssd1306_tty_writechar(ssd1306_tty_t *tty, char c);
+	void ssd1306_tty_puts(ssd1306_tty_t *tty, const char *s);
 	void ssd1306_tty_show(ssd1306_tty_t *tty);
-
 	void ssd1306_tty_printf(ssd1306_tty_t *tty, const char *fmt, ...);
 	void ssd1306_tty_cls(ssd1306_tty_t *tty);
 	void ssd1306_tty_set_scale(ssd1306_tty_t *tty, int scale);

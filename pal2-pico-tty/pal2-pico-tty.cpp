@@ -83,7 +83,6 @@ int main()
     gpio_put(PIN_CS, 1);
     // For more examples of SPI use see https://github.com/raspberrypi/pico-examples/tree/master/spi
 
-
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SDA);
@@ -135,15 +134,15 @@ int main()
     init_ssd1306(i2c_addr, &disp);
     ssd1306_init_tty(&disp, &tty, font_8x5);
 
-    ssd1306_tty_puts(&tty, "SCANNING DRIVE --", 0);
+    ssd1306_tty_puts(&tty, "SCANNING DRIVE --");
     ssd1306_tty_show(&tty);
     printf("Scanning drive\r\n");
     int k = prep_sd_card();
     printf("Done scanning drive\r\n");
-    ssd1306_tty_puts(&tty, "Done\n", 0);
+    ssd1306_tty_puts(&tty, "Done\n");
     ssd1306_tty_show(&tty);
 
-    ssd1306_tty_puts(&tty, "Scanning RAM", 0);
+    ssd1306_tty_puts(&tty, "Scanning RAM");
     ssd1306_tty_show(&tty);
     size_t mem_size1 = get_largest_alloc_block_binary2(1, 1024 * 1024);
     size_t freeK = (size_t)(mem_size1 / 1024);
@@ -175,17 +174,28 @@ static void reset_pal(void)
     gpio_set_dir(PAL_RESET_GPIO, GPIO_IN); /* release */
 }
 
+void show_default_text(ssd1306_tty_t *tty) {
+    ssd1306_tty_cls(tty);
+    ssd1306_tty_puts(tty, " TTY MODE\n");
+    ssd1306_tty_puts(tty, " USB<->PAL2\n");
+    // ssd1306_tty_puts(tty, " \n");
+    // ssd1306_tty_puts(tty, " MENU FOR MENU");
+    ssd1306_tty_show(tty);
+}
+
 void main_loop(ssd1306_tty_t *tty)
 {
-    ssd1306_tty_puts(tty, "Restting PAL...", 0);
+    ssd1306_tty_puts(tty, "Resetting PAL...");
     ssd1306_tty_show(tty);
 
     reset_pal();
-    ssd1306_tty_puts(tty, " done\n", 0);
+    ssd1306_tty_puts(tty, " done\n");
     ssd1306_tty_show(tty);
 
-    ssd1306_tty_puts(tty, "Boot successful, in main loop\n", 0);
+    ssd1306_tty_puts(tty, "Boot successful, in main loop\n");
     ssd1306_tty_show(tty);
+
+    show_default_text(tty);
 
     while (true)
     {
@@ -231,13 +241,10 @@ void main_loop(ssd1306_tty_t *tty)
 
             if (btn.menu == BUTTON_STATE_PRESSED)
             {
-                ssd1306_tty_puts(tty, "MENU pressed\n", 0);
+                ssd1306_tty_puts(tty, "MENU pressed\n");
 
                 process_menu(tty);
-
-                ssd1306_tty_cls(tty);
-                ssd1306_tty_puts(tty, " LEFT MENU\n", 0);
-                ssd1306_tty_show(tty);
+                show_default_text(tty);
             }
             else
             {

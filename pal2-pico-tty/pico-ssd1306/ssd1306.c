@@ -432,15 +432,15 @@ void ssd1306_tty_cls(ssd1306_tty_t *tty)
     // ssd1306_tty_render(tty);
 }
 
-void ssd1306_tty_puts(ssd1306_tty_t *tty, const char *s, uint8_t color)
+void ssd1306_tty_puts(ssd1306_tty_t *tty, const char *s)
 {
     while (*s)
     {
-        ssd1306_tty_writechar(tty, *s++, color);
+        ssd1306_tty_writechar(tty, *s++);
     }
 }
 
-void ssd1306_tty_writechar(ssd1306_tty_t *tty, char c, uint8_t color)
+void ssd1306_tty_writechar(ssd1306_tty_t *tty, char c)
 {
     if (c == '\n')
     {
@@ -465,7 +465,7 @@ void ssd1306_tty_writechar(ssd1306_tty_t *tty, char c, uint8_t color)
 
     int idx = tty->y * tty->width + tty->x;
     tty->buffer[idx] = c;
-    tty->color[idx] = color;
+    // tty->color[idx] = color;
 
     tty->x++;
 }
@@ -506,8 +506,8 @@ void ssd1306_tty_show2(ssd1306_tty_t *tty)
 
  void ssd1306_tty_show(ssd1306_tty_t *tty)
 {
-    ssd1306_tty_show2(tty);               // original routine
-    return;
+    // ssd1306_tty_show2(tty);               // original routine
+    // return;
 
     uint64_t t0 = time_us_64();          // start‑stamp
     ssd1306_tty_show2(tty);               // original routine
@@ -550,7 +550,7 @@ void ssd1306_tty_printf(ssd1306_tty_t *tty, const char *fmt, ...)
     vsnprintf(buf, sizeof buf, fmt, ap);
     va_end(ap);
 
-    ssd1306_tty_puts(tty, buf, 0);
+    ssd1306_tty_puts(tty, buf);
 }
 
 static void aaa(ssd1306_t *p)

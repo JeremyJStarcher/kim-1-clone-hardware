@@ -8,9 +8,9 @@
 /* ----------------------------------------------------------------
  *  Per‑build tuning — adjust to taste
  * ---------------------------------------------------------------- */
-#define DEBOUNCE_US (20 * 1000)     //  mechanical bounce mask
+#define DEBOUNCE_US (20 * 1000)      //  mechanical bounce mask
 #define REPEAT_DELAY_US (500 * 1000) //  before first repeat
-#define REPEAT_RATE_US (150 * 1000) // 150 ms: between repeats
+#define REPEAT_RATE_US (150 * 1000)  // 150 ms: between repeats
 
 /* ----------------------------------------------------------------
  *  Internal bookkeeping for each physical key
@@ -24,7 +24,7 @@ typedef struct
     bool is_repeat;
 } btn_fsm_t;
 
-static  btn_fsm_t btn_fsm[5]; // one entry per button, index order = pins[]
+static btn_fsm_t btn_fsm[5]; // one entry per button, index order = pins[]
 
 // Array of all button pins
 static const uint8_t button_pins[] = {
@@ -133,6 +133,13 @@ button_state_t read_buttons_struct(void)
         }
     }
 
+    event.any = false;
+
+    if (event.menu || event.rewind || event.play || event.fast_forward || event.record)
+    {
+        event.any = true;
+    }
+
     return event; // 1 = “new press” or “repeat pulse”, 0 = idle
 }
 
@@ -142,6 +149,7 @@ int menu_select(ssd1306_tty_t *tty, menu_list_t items, int item_count)
 
     int selected_index = 0;
     int top_index = 0;
+    bool do_redraw = true;
 
     printf("MAX_VISIBLE_ITEMS %d\n", MAX_VISIBLE_ITEMS);
 
@@ -171,12 +179,16 @@ int menu_select(ssd1306_tty_t *tty, menu_list_t items, int item_count)
 
             if (i != 0)
             {
-                ssd1306_tty_puts(tty, "\n", 0);
+                ssd1306_tty_puts(tty, "\n");
             }
-            ssd1306_tty_puts(tty, line, 0);
+            ssd1306_tty_puts(tty, line);
         }
 
-        ssd1306_tty_show(tty);
+        if (do_redraw)
+        {
+            ssd1306_tty_show(tty);
+            do_redraw = false;
+        }
 
         // Read button states
         button_state_t btn = read_buttons_struct();
@@ -184,6 +196,7 @@ int menu_select(ssd1306_tty_t *tty, menu_list_t items, int item_count)
         // Handle button presses
         if (btn.rewind)
         {
+            do_redraw = true;
             if (selected_index > 0)
             {
                 --selected_index;
@@ -195,6 +208,7 @@ int menu_select(ssd1306_tty_t *tty, menu_list_t items, int item_count)
         }
         else if (btn.fast_forward)
         {
+            do_redraw = true;
             if (selected_index < item_count - 1)
             {
                 ++selected_index;
@@ -221,7 +235,7 @@ int menu_select(ssd1306_tty_t *tty, menu_list_t items, int item_count)
 void menu_about(ssd1306_tty_t *tty)
 {
     ssd1306_tty_cls(tty);
-    ssd1306_tty_puts(tty, "ABOUT", 0);
+    ssd1306_tty_puts(tty, "ABOUT");
     ssd1306_tty_show(tty);
 
     while (true)
@@ -231,7 +245,6 @@ void menu_about(ssd1306_tty_t *tty)
         {
             return;
         }
-        sleep_ms(100);
     }
 }
 
