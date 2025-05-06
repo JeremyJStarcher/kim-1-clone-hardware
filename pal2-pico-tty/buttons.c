@@ -143,8 +143,10 @@ button_state_t read_buttons_struct(void)
     return event; // 1 = “new press” or “repeat pulse”, 0 = idle
 }
 
-int menu_select(ssd1306_tty_t *tty, menu_list_t items, int item_count)
+int menu_select(ssd1306_tty_t *tty, dmenu_list_t *menu)
 {
+    size_t item_count = menu->count;
+
     int MAX_VISIBLE_ITEMS = MIN(tty->height, item_count);
 
     int selected_index = 0;
@@ -168,11 +170,11 @@ int menu_select(ssd1306_tty_t *tty, menu_list_t items, int item_count)
             char line[128];
             if (item_idx == selected_index)
             {
-                snprintf(line, sizeof(line), "> %s", items[item_idx]);
+                snprintf(line, sizeof(line), "> %s", menu->items[item_idx].label);
             }
             else
             {
-                snprintf(line, sizeof(line), "  %s", items[item_idx]);
+                snprintf(line, sizeof(line), "  %s", menu->items[item_idx].label);
             }
             // Prevent the line from running off the screen
             line[tty->width] = 0;
@@ -248,57 +250,75 @@ void menu_about(ssd1306_tty_t *tty)
     }
 }
 
+void menu_tty_up(ssd1306_tty_t *tty)
+{
+    ssd1306_tty_cls(tty);
+    ssd1306_tty_puts(tty, "TTY>>");
+    ssd1306_tty_show(tty);
+
+    while (true)
+    {
+        button_state_t btn = read_buttons_struct();
+        if (btn.menu)
+        {
+            return;
+        }
+    }
+}
+
 int process_menu(ssd1306_tty_t *tty)
 {
+    dmenu_list_t menu = {.count = 0};
 
-    menu_item_t menu_items[] = {
-        // { "Send File",      send_file_callback },
-        // { "Settings",       settings_callback },
-        // { "Baud Rate",      baud_rate_callback },
-        // { "Character Delay", NULL },
-        {"ABOUT", menu_about},
-        {"Op", NULL},
-        {"Opt", NULL},
-        {"Option 8", NULL},
-        {"Option 9", NULL},
-        {"Option 10", NULL},
-        {"Line Delay", NULL},
-        {"Option 6", NULL},
-        {"Option 7", NULL},
-        {"Option 8", NULL},
-        {"Option 9", NULL},
-        {"Option 10", NULL},
-        {"Line Delay", NULL},
-        {"Option 6", NULL},
-        {"Option 7", NULL},
-        {"Option 8", NULL},
-        {"Option 9", NULL},
-        {"Option 10", NULL},
-    };
+    // ✅ Populate menu
+    add_menu_item(&menu, "ABOUT", menu_about);
+    add_menu_item(&menu, "TTY UP", menu_tty_up);
+    add_menu_item(&menu, "Option 1", NULL);
+    add_menu_item(&menu, "Option 2", NULL);
 
     ssd1306_tty_set_scale(tty, 2);
 
     while (true)
     {
-        int selected = menu_select(tty, menu_items, sizeof(menu_items) / sizeof(menu_items[0]));
+        int selected = menu_select(tty, &menu);
 
         ssd1306_clear(tty->ssd1306);
 
         if (selected >= 0)
         {
-            menu_item_t item = menu_items[selected];
+            dmenu_item_t item = menu.items[selected];
             if (item.callback != NULL)
             {
                 item.callback(tty);
             }
             else
             {
+                free_menu(&menu);
                 return selected;
             }
         }
         else
         {
+            free_menu(&menu);
             return selected;
         }
     }
+}
+
+void add_menu_item(dmenu_list_t *menu, char *label, dmenu_callback_t callback)
+{
+    if (menu->count >= MAX_MENU_ITEMS)
+        return; // handle overflow
+    menu->items[menu->count].label = label;
+    menu->items[menu->count].callback = callback;
+    menu->count++;
+}
+
+void free_menu(dmenu_list_t *menu)
+{
+    for (size_t i = 0; i < menu->count; i++)
+    {
+        free(menu->items[i].label); // Only if label was malloc'd
+    }
+    menu->count = 0;
 }

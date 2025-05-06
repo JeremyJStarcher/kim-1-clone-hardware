@@ -6,44 +6,50 @@ extern "C"
 
 #include "ssd1306.h"
 
-    const uint8_t PIN_MENU = 12;
-    const uint8_t PIN_REWIND = 6;
-    const uint8_t PIN_PLAY = 7;
-    const uint8_t PIN_FASTFORWARD = 3;
-    const uint8_t PIN_RECORD = 2;
+  const uint8_t PIN_MENU = 12;
+  const uint8_t PIN_REWIND = 6;
+  const uint8_t PIN_PLAY = 7;
+  const uint8_t PIN_FASTFORWARD = 3;
+  const uint8_t PIN_RECORD = 2;
 
-    const uint8_t BUTTON_STATE_NONE = 0;
-    const uint8_t BUTTON_STATE_PRESSED = 1;
-    const uint8_t BUTTON_STATE_REPEAT = 2;
+  const uint8_t BUTTON_STATE_NONE = 0;
+  const uint8_t BUTTON_STATE_PRESSED = 1;
+  const uint8_t BUTTON_STATE_REPEAT = 2;
 
-    typedef struct
-    {
-        uint8_t menu;
-        uint8_t rewind;
-        uint8_t play;
-        uint8_t fast_forward;
-        uint8_t record;
-        bool any;
-    } button_state_t;
+  typedef struct
+  {
+    uint8_t menu;
+    uint8_t rewind;
+    uint8_t play;
+    uint8_t fast_forward;
+    uint8_t record;
+    bool any;
+  } button_state_t;
 
-    // typedef const char *menu_item_t;
-    // typedef menu_item_t *menu_list_t;
-    typedef void (*menu_callback_t)(ssd1306_tty_t *tty);
+#define MAX_MENU_ITEMS 32 // or whatever fits in memory safely
 
-    typedef struct
-    {
-        const char *label;
-        menu_callback_t callback; // May be NULL
-    } menu_item_t;
+  typedef void (*dmenu_callback_t)(ssd1306_tty_t *tty);
 
-    typedef const menu_item_t *menu_list_t;
+  typedef struct
+  {
+    char *label;
+    dmenu_callback_t callback;
+  } dmenu_item_t;
 
-    void init_buttons(void);
+  typedef struct
+  {
+    dmenu_item_t items[MAX_MENU_ITEMS];
+    size_t count;
+  } dmenu_list_t;
 
-    button_state_t read_buttons_struct(void);
+  void init_buttons(void);
 
-    int menu_select(ssd1306_tty_t *tty, menu_list_t items, int item_count);
-    int process_menu(ssd1306_tty_t *tty);
+  button_state_t read_buttons_struct(void);
+
+  void add_menu_item(dmenu_list_t *menu, char *label, dmenu_callback_t callback);
+  int menu_select(ssd1306_tty_t *tty, dmenu_list_t *menu);
+  void free_menu(dmenu_list_t *menu);
+  int process_menu(ssd1306_tty_t *tty);
 
 #ifdef __cplusplus
 }
