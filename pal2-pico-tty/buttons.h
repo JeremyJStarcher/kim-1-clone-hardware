@@ -34,6 +34,7 @@ extern "C"
   {
     char *label;
     dmenu_callback_t callback;
+    bool is_dir; // A prefix symbol to show
   } dmenu_item_t;
 
   typedef struct
@@ -46,7 +47,7 @@ extern "C"
 
   button_state_t read_buttons_struct(void);
 
-  void add_menu_item(dmenu_list_t *menu, char *label, dmenu_callback_t callback);
+  dmenu_item_t* add_menu_item(dmenu_list_t *menu, char *label, dmenu_callback_t callback);
   int menu_select(ssd1306_tty_t *tty, dmenu_list_t *menu);
   void free_menu(dmenu_list_t *menu);
   int process_menu(ssd1306_tty_t *tty);

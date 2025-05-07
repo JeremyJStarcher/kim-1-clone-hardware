@@ -7,6 +7,12 @@
 #include "buttons.h"
 #include "ssd1306.h"
 #include "sd-card/sd-card.h"
+#include "proj_hw.h"
+
+#define PROGRESS_STEPS 100 /* granularity: 1 %          */
+#define BAR_WIDTH_CHARS 20 /* ########··············    */
+
+#define DIR_SYMBOL '['
 
 /* ----------------------------------------------------------------
  *  Per‑build tuning — adjust to taste
@@ -36,6 +42,21 @@ static const uint8_t button_pins[] = {
     PIN_PLAY,
     PIN_FASTFORWARD,
     PIN_RECORD};
+
+static void oled_progress(ssd1306_tty_t *tty,
+                          uint32_t sent, uint32_t total)
+{
+    uint32_t pct = (sent * 100) / total;             /* 0–100       */
+    uint32_t filled = (pct * BAR_WIDTH_CHARS) / 100; /* 0–BAR_WIDTH */
+    // ssd1306_tty_set_cursor(tty, 0, tty->rows - 1);   /* bottom row  */
+
+    // ssd1306_tty_putc(tty, '[');
+    // for (uint32_t i = 0; i < BAR_WIDTH_CHARS; ++i)
+    //     ssd1306_tty_putc(tty, i < filled ? '#' : ' ');
+
+    ssd1306_tty_printf(tty, "] %3lu%%", (unsigned long)pct);
+    ssd1306_tty_show(tty); /* blit once   */
+}
 
 void init_buttons(void)
 {
@@ -166,7 +187,7 @@ int menu_select(ssd1306_tty_t *tty, dmenu_list_t *menu)
             if (item_idx >= item_count)
                 break;
 
-            char line[128];
+            char line[MAX_PATH_LEN];
             if (item_idx == selected_index)
             {
                 snprintf(line, sizeof(line), "> %s", menu->items[item_idx].label);
@@ -175,6 +196,13 @@ int menu_select(ssd1306_tty_t *tty, dmenu_list_t *menu)
             {
                 snprintf(line, sizeof(line), "  %s", menu->items[item_idx].label);
             }
+
+            if (menu->items[item_idx].is_dir)
+            {
+                line[1] = DIR_SYMBOL;
+                strncat(line, "]", MAX_PATH_LEN - 1);
+            }
+
             // Prevent the line from running off the screen
             line[tty->width] = 0;
 
@@ -253,9 +281,10 @@ void tree_to_menu(DirEntry *node, dmenu_list_t *menu, int level)
 {
     while (node)
     {
-        add_menu_item(menu, node->name, NULL);
+        dmenu_item_t *menu_item = add_menu_item(menu, node->name, NULL);
         if (node->is_dir)
         {
+            menu_item->is_dir = true;
             tree_to_menu(node->children, menu, level + 1);
         }
         node = node->sibling;
@@ -268,34 +297,163 @@ static int cmp_items(const void *a, const void *b)
     return strcasecmp(ia->label, ib->label);
 }
 
+void path_up(char *path)
+{
+    if (!path || !*path) /* NULL or empty → nothing to do        */
+        return;
+
+    /* 1. Trim a trailing '/' unless the path is exactly "X:/"               */
+    size_t len = strlen(path);
+    if (len > 3 && path[len - 1] == '/')
+    {
+        path[--len] = '\0'; /* drop the trailing slash              */
+    }
+
+    /* 2. Find the last slash that separates components                      */
+    char *slash = strrchr(path, '/');
+    if (!slash) /* no slash at all → leave string       */
+        return;
+
+    /* 3. If we are deeper than root ("X:/"), cut there; else keep "X:/"     */
+    if (slash > path + 2)
+    { /* > "X:/"  → cut component             */
+        *slash = '\0';
+    }
+    else
+    {                   /* already at "X:/" → ensure proper NUL */
+        path[3] = '\0'; /* keeps "X:/" exactly                  */
+    }
+}
+
+void send_file(ssd1306_tty_t *tty, const char *dir, const char *file_name)
+{
+#define LINE_BUF_LEN 255
+
+    char full_file_name[MAX_PATH_LEN];
+    FIL fp;
+    FRESULT fr;
+    UINT br;
+    char line[LINE_BUF_LEN];
+
+    size_t used = snprintf(full_file_name, MAX_PATH_LEN, "%s%s%s",
+                           dir,
+                           (dir[0] && dir[strlen(dir) - 1] != '/') ? "/" : "",
+                           file_name);
+
+    printf("FULL FILE NAME %s\n", full_file_name);
+
+    fr = f_open(&fp, full_file_name, FA_READ);
+    if (fr != FR_OK)
+    {
+        //         return fr;
+    }
+
+    DWORD sz = f_size(&fp); /* Constant-time size fetch          */
+    printf("File: %s  (%lu bytes)\n\n", full_file_name, (unsigned long)sz);
+
+    const DWORD total = f_size(&fp);
+    uint32_t last_step = 0; /* last % drawn       */
+
+    while (f_gets(line, sizeof line, &fp))
+    {
+        size_t n = strlen(line);
+
+        for (size_t i = 0; i <= n; i++)
+        {
+            uart_putc_raw(PAL_UART, (uint8_t)line[i]);
+        }
+        if (n && line[n - 1] != '\n')
+        {
+            uart_putc_raw(PAL_UART, (uint8_t)'\n');
+        }
+
+        uint32_t sent = f_tell(&fp); /* bytes already read   */
+        uint32_t step = (sent * PROGRESS_STEPS) / total;
+
+        if (step != last_step)
+        { /* crossed 1 % boundary */
+            last_step = step;
+            oled_progress(tty, sent, total);
+            /* term_progress(sent, total);     <-- enable if no OLED   */
+        }
+    }
+
+    oled_progress(tty, total, total);
+    f_close(&fp);
+}
 
 void menu_tty_up(ssd1306_tty_t *tty)
 {
     dmenu_list_t menu = {.count = 0};
     DirEntry *root = NULL;
+    char current_dir[MAX_PATH_LEN];
 
-    FRESULT res = build_tree(DRIVE_PATH PTP_PATH, &root, false);
+    strncpy(current_dir, DRIVE_PATH PTP_PATH, MAX_PATH_LEN);
 
-    if (res != FR_OK)
+    while (true)
     {
-        ssd1306_tty_cls(tty);
-        ssd1306_tty_printf(tty, "ERROR# %d", res);
-        ssd1306_tty_show(tty);
-        while (1) {
-            ;
+
+        add_menu_item(&menu, "..", NULL);
+        menu.items[0].is_dir = true;
+
+        printf("CURRENT DIRECTORY %s\n", current_dir);
+
+        FRESULT res = build_tree(current_dir, &root, false);
+
+        if (res != FR_OK)
+        {
+            ssd1306_tty_cls(tty);
+            ssd1306_tty_printf(tty, "ERROR# %d", res);
+            ssd1306_tty_show(tty);
+            while (1)
+            {
+                ;
+            }
         }
+
+        tree_to_menu(root, &menu, 0);
+
+        /* call once after populating `menu` */
+        qsort(menu.items, menu.count, sizeof(dmenu_item_t), cmp_items);
+
+        int ret = process_menu_inner(tty, &menu);
+        if (ret == -1)
+        {
+            free_tree(root);
+            free_menu(&menu);
+            return;
+        }
+
+        dmenu_item_t item = menu.items[ret];
+
+        if (!item.is_dir)
+        {
+            send_file(tty, current_dir, item.label);
+        }
+        else
+        {
+            if (strcmp(item.label, "..") == 0)
+            {
+                path_up(current_dir);
+            }
+            else
+            {
+                if (current_dir[strlen(current_dir) - 1] != '/')
+                {
+                    snprintf(current_dir + strlen(current_dir),
+                             MAX_PATH_LEN - strlen(current_dir), /* space still available      */
+                             "%s", "/");
+                }
+
+                snprintf(current_dir + strlen(current_dir),
+                         MAX_PATH_LEN - strlen(current_dir), /* space still available      */
+                         "%s", item.label);
+            }
+        }
+
+        free_tree(root);
+        free_menu(&menu);
     }
-
-    tree_to_menu(root, &menu, 0);
-
-    
-    /* call once after populating `menu` */
-    qsort(menu.items, menu.count, sizeof(dmenu_item_t), cmp_items);
-
-    int ret = process_menu_inner(tty, &menu);
-
-    free_tree(root);
-    free_menu(&menu);
 }
 
 int process_menu_inner(ssd1306_tty_t *tty, dmenu_list_t *menu)
@@ -343,20 +501,24 @@ int process_menu(ssd1306_tty_t *tty)
     return ret;
 }
 
-void add_menu_item(dmenu_list_t *menu, char *label, dmenu_callback_t callback)
+dmenu_item_t *add_menu_item(dmenu_list_t *menu, char *label, dmenu_callback_t callback)
 {
     if (menu->count >= MAX_MENU_ITEMS)
-        return; // handle overflow
+        return NULL; // handle overflow
     menu->items[menu->count].label = label;
     menu->items[menu->count].callback = callback;
+    menu->items[menu->count].is_dir = false;
     menu->count++;
+
+    return &menu->items[menu->count - 1];
 }
 
 void free_menu(dmenu_list_t *menu)
 {
     for (size_t i = 0; i < menu->count; i++)
     {
-        // free(menu->items[i].label); // Only if label was malloc'd
+        menu->items[i].label = NULL;
+        menu->items[i].is_dir = false;
     }
     menu->count = 0;
 }
