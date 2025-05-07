@@ -9,6 +9,9 @@
 #include "sd-card/sd-card.h"
 #include "proj_hw.h"
 
+#define SHORT_DELAY 20
+#define LONG_DELAY 200
+
 #define PROGRESS_STEPS 100 /* granularity: 1 %          */
 #define BAR_WIDTH_CHARS 20 /* ########··············    */
 
@@ -44,18 +47,28 @@ static const uint8_t button_pins[] = {
     PIN_RECORD};
 
 static void oled_progress(ssd1306_tty_t *tty,
-                          uint32_t sent, uint32_t total)
+                          uint32_t sent, uint32_t total,
+                          const char *file_name)
 {
     uint32_t pct = (sent * 100) / total;             /* 0–100       */
     uint32_t filled = (pct * BAR_WIDTH_CHARS) / 100; /* 0–BAR_WIDTH */
+
+    char line[50];
+    snprintf(line, sizeof(line), "%02ld%c", pct, '%');
+
+    ssd1306_draw_string(tty->ssd1306, 1, 1, 3, line);
+    ssd1306_draw_string(tty->ssd1306, 4, 25, 1, file_name);
+
+    ssd1306_show(tty->ssd1306);
+
     // ssd1306_tty_set_cursor(tty, 0, tty->rows - 1);   /* bottom row  */
 
     // ssd1306_tty_putc(tty, '[');
     // for (uint32_t i = 0; i < BAR_WIDTH_CHARS; ++i)
     //     ssd1306_tty_putc(tty, i < filled ? '#' : ' ');
 
-    ssd1306_tty_printf(tty, "] %3lu%%", (unsigned long)pct);
-    ssd1306_tty_show(tty); /* blit once   */
+    // ssd1306_tty_printf(tty, "] %3lu%%", (unsigned long)pct);
+    // ssd1306_tty_show(tty); /* blit once   */
 }
 
 void init_buttons(void)
@@ -354,17 +367,30 @@ void send_file(ssd1306_tty_t *tty, const char *dir, const char *file_name)
     const DWORD total = f_size(&fp);
     uint32_t last_step = 0; /* last % drawn       */
 
+    oled_progress(tty, 0, total, file_name);
+
     while (f_gets(line, sizeof line, &fp))
     {
         size_t n = strlen(line);
 
+
         for (size_t i = 0; i <= n; i++)
         {
+            char ch = line[i];
             uart_putc_raw(PAL_UART, (uint8_t)line[i]);
+            if (ch == '\r' || ch == '\n')
+            {
+                sleep_ms(LONG_DELAY);
+            }
+            else
+            {
+                sleep_ms(SHORT_DELAY);
+            }
         }
         if (n && line[n - 1] != '\n')
         {
             uart_putc_raw(PAL_UART, (uint8_t)'\n');
+            sleep_ms(LONG_DELAY);
         }
 
         uint32_t sent = f_tell(&fp); /* bytes already read   */
@@ -373,12 +399,12 @@ void send_file(ssd1306_tty_t *tty, const char *dir, const char *file_name)
         if (step != last_step)
         { /* crossed 1 % boundary */
             last_step = step;
-            oled_progress(tty, sent, total);
+            oled_progress(tty, sent, total, file_name);
             /* term_progress(sent, total);     <-- enable if no OLED   */
         }
     }
 
-    oled_progress(tty, total, total);
+    oled_progress(tty, total, total, file_name);
     f_close(&fp);
 }
 
