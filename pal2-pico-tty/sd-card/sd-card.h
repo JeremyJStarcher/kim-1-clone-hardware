@@ -14,6 +14,9 @@ extern "C"
 
 #define MAX_NAME_LEN 64
 #define MAX_PATH_LEN 256
+#define DRIVE_PATH "0:"
+#define PTP_PATH "/kim-1/basic"
+
 
     typedef struct DirEntry
     {
@@ -24,10 +27,12 @@ extern "C"
         struct DirEntry *children; // First child (if is_dir)
     } DirEntry;
 
-    FRESULT build_tree(const char *path, DirEntry **out_node);
+    FRESULT build_tree(const char *path, DirEntry **out_node, bool recurse);
     void print_tree(DirEntry *node, int level);
     void free_tree(DirEntry *node);
     int prep_sd_card();
+    DirEntry *create_entry(const char *name, int is_dir);
+
 
 #ifdef __cplusplus
 }

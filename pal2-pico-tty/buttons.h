@@ -50,6 +50,8 @@ extern "C"
   int menu_select(ssd1306_tty_t *tty, dmenu_list_t *menu);
   void free_menu(dmenu_list_t *menu);
   int process_menu(ssd1306_tty_t *tty);
+  int process_menu_inner(ssd1306_tty_t *tty, dmenu_list_t *menu);
+
 
 #ifdef __cplusplus
 }

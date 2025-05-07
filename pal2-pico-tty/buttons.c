@@ -2,8 +2,11 @@
 #include "hardware/gpio.h"
 #include "stdlib.h"
 #include "stdio.h"
+#include "string.h"
 
 #include "buttons.h"
+#include "ssd1306.h"
+#include "sd-card/sd-card.h"
 
 /* ----------------------------------------------------------------
  *  Per‑build tuning — adjust to taste
@@ -33,10 +36,6 @@ static const uint8_t button_pins[] = {
     PIN_PLAY,
     PIN_FASTFORWARD,
     PIN_RECORD};
-
-////////////////////////////////
-
-///////////////////
 
 void init_buttons(void)
 {
@@ -250,32 +249,64 @@ void menu_about(ssd1306_tty_t *tty)
     }
 }
 
+void tree_to_menu(DirEntry *node, dmenu_list_t *menu, int level)
+{
+    while (node)
+    {
+        add_menu_item(menu, node->name, NULL);
+        if (node->is_dir)
+        {
+            tree_to_menu(node->children, menu, level + 1);
+        }
+        node = node->sibling;
+    }
+}
+
+static int cmp_items(const void *a, const void *b)
+{
+    const dmenu_item_t *ia = a, *ib = b;
+    return strcasecmp(ia->label, ib->label);
+}
+
+
 void menu_tty_up(ssd1306_tty_t *tty)
 {
-    ssd1306_tty_cls(tty);
-    ssd1306_tty_puts(tty, "TTY>>");
-    ssd1306_tty_show(tty);
+    dmenu_list_t menu = {.count = 0};
+    DirEntry *root = NULL;
 
-    while (true)
+    FRESULT res = build_tree(DRIVE_PATH PTP_PATH, &root, false);
+
+    if (res != FR_OK)
     {
-        button_state_t btn = read_buttons_struct();
-        if (btn.menu)
-        {
-            return;
+        ssd1306_tty_cls(tty);
+        ssd1306_tty_printf(tty, "ERROR# %d", res);
+        ssd1306_tty_show(tty);
+        while (1) {
+            ;
         }
     }
+
+    tree_to_menu(root, &menu, 0);
+
+    
+    /* call once after populating `menu` */
+    qsort(menu.items, menu.count, sizeof(dmenu_item_t), cmp_items);
+
+    int ret = process_menu_inner(tty, &menu);
+
+    free_tree(root);
+    free_menu(&menu);
 }
 
 int process_menu_inner(ssd1306_tty_t *tty, dmenu_list_t *menu)
 {
-
-    ssd1306_tty_set_scale(tty, 2);
+    ssd1306_tty_set_scale(tty, 1);
 
     while (true)
     {
         int selected = menu_select(tty, menu);
 
-        ssd1306_clear(tty->ssd1306);
+        ssd1306_tty_cls(tty);
 
         if (selected >= 0)
         {
@@ -296,7 +327,8 @@ int process_menu_inner(ssd1306_tty_t *tty, dmenu_list_t *menu)
     }
 }
 
-int process_menu(ssd1306_tty_t *tty) {
+int process_menu(ssd1306_tty_t *tty)
+{
     dmenu_list_t menu = {.count = 0};
 
     // ✅ Populate menu
@@ -305,13 +337,11 @@ int process_menu(ssd1306_tty_t *tty) {
     add_menu_item(&menu, "Option 1", NULL);
     add_menu_item(&menu, "Option 2", NULL);
 
-    int ret =  process_menu_inner(tty,&menu);
+    int ret = process_menu_inner(tty, &menu);
 
     free_menu(&menu);
     return ret;
-
 }
-
 
 void add_menu_item(dmenu_list_t *menu, char *label, dmenu_callback_t callback)
 {
@@ -326,7 +356,7 @@ void free_menu(dmenu_list_t *menu)
 {
     for (size_t i = 0; i < menu->count; i++)
     {
-        free(menu->items[i].label); // Only if label was malloc'd
+        // free(menu->items[i].label); // Only if label was malloc'd
     }
     menu->count = 0;
 }

@@ -139,6 +139,8 @@ int main()
     printf("Scanning drive\r\n");
     int k = prep_sd_card();
     printf("Done scanning drive\r\n");
+
+
     ssd1306_tty_puts(&tty, "Done\n");
     ssd1306_tty_show(&tty);
 

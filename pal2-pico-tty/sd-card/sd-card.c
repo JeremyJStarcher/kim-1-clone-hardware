@@ -12,8 +12,6 @@
 #include "proj_hw.h"
 
 #define RUN_PERF_TEST false
-#define DRIVE_PATH "0:"
-#define PTP_PATH "/kim-1/basic"
 
 // Set PRE_ALLOCATE true to pre-allocate file clusters.
 const bool PRE_ALLOCATE = true;
@@ -44,7 +42,7 @@ const uint32_t FILE_SIZE = 1000000UL * FILE_SIZE_MB;
 uint32_t buf32[(BUF_SIZE + 3) / 4];
 uint8_t *buf = (uint8_t *)buf32;
 
-static DirEntry *create_entry(const char *name, int is_dir)
+DirEntry *create_entry(const char *name, int is_dir)
 {
     DirEntry *entry = (DirEntry *)malloc(sizeof(DirEntry));
     if (!entry)
@@ -60,9 +58,21 @@ static DirEntry *create_entry(const char *name, int is_dir)
     return entry;
 }
 
+static pico_fatfs_spi_config_t config = {
+    spi1,
+    CLK_SLOW_DEFAULT,
+    CLK_FAST_DEFAULT,
+    SD_MISO,
+    SD_CS,
+    SD_SCK,
+    SD_MOSI,
+    true // use internal pullup
+};
+
+static FATFS fs;
+
 int prep_sd_card()
 {
-    FATFS fs;
     FIL fil;
     FRESULT fr; /* FatFs return code */
     UINT br;
@@ -94,17 +104,6 @@ int prep_sd_card()
     printf("=====================\n");
     printf("== pico_fatfs_test ==\n");
     printf("=====================\n");
-
-    pico_fatfs_spi_config_t config = {
-        spi1,
-        CLK_SLOW_DEFAULT,
-        CLK_FAST_DEFAULT,
-        SD_MISO,
-        SD_CS,
-        SD_SCK,
-        SD_MOSI,
-        true // use internal pullup
-    };
 
     pico_fatfs_set_config(&config);
 
@@ -322,7 +321,7 @@ int prep_sd_card()
 
     DirEntry *root = NULL;
 
-    if (build_tree(DRIVE_PATH PTP_PATH, &root) == FR_OK)
+    if (build_tree(DRIVE_PATH PTP_PATH, &root, true) == FR_OK)
     {
         print_tree(root, 0);
         // Work with `root` as needed...
@@ -332,7 +331,7 @@ int prep_sd_card()
     return 0;
 }
 
-FRESULT build_tree(const char *path, DirEntry **out_node)
+FRESULT build_tree(const char *path, DirEntry **out_node, bool recurse)
 {
     FRESULT res;
     DIR dir;
@@ -342,7 +341,10 @@ FRESULT build_tree(const char *path, DirEntry **out_node)
 
     res = f_opendir(&dir, path);
     if (res != FR_OK)
+    {
+        printf("build_tree f_opendir failed with: %d on '%s'\n", res, path);
         return res;
+    }
 
     while (1)
     {
@@ -370,10 +372,10 @@ FRESULT build_tree(const char *path, DirEntry **out_node)
         }
 
         // Recurse into subdirectories
-        if (is_dir)
+        if (is_dir && recurse)
         {
             snprintf(full_path, sizeof(full_path), "%s/%s", path, fno.fname);
-            build_tree(full_path, &entry->children);
+            build_tree(full_path, &entry->children, recurse);
         }
     }
 
