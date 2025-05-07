@@ -266,8 +266,37 @@ void menu_tty_up(ssd1306_tty_t *tty)
     }
 }
 
-int process_menu(ssd1306_tty_t *tty)
+int process_menu_inner(ssd1306_tty_t *tty, dmenu_list_t *menu)
 {
+
+    ssd1306_tty_set_scale(tty, 2);
+
+    while (true)
+    {
+        int selected = menu_select(tty, menu);
+
+        ssd1306_clear(tty->ssd1306);
+
+        if (selected >= 0)
+        {
+            dmenu_item_t item = menu->items[selected];
+            if (item.callback != NULL)
+            {
+                item.callback(tty);
+            }
+            else
+            {
+                return selected;
+            }
+        }
+        else
+        {
+            return selected;
+        }
+    }
+}
+
+int process_menu(ssd1306_tty_t *tty) {
     dmenu_list_t menu = {.count = 0};
 
     // ✅ Populate menu
@@ -276,34 +305,13 @@ int process_menu(ssd1306_tty_t *tty)
     add_menu_item(&menu, "Option 1", NULL);
     add_menu_item(&menu, "Option 2", NULL);
 
-    ssd1306_tty_set_scale(tty, 2);
+    int ret =  process_menu_inner(tty,&menu);
 
-    while (true)
-    {
-        int selected = menu_select(tty, &menu);
+    free_menu(&menu);
+    return ret;
 
-        ssd1306_clear(tty->ssd1306);
-
-        if (selected >= 0)
-        {
-            dmenu_item_t item = menu.items[selected];
-            if (item.callback != NULL)
-            {
-                item.callback(tty);
-            }
-            else
-            {
-                free_menu(&menu);
-                return selected;
-            }
-        }
-        else
-        {
-            free_menu(&menu);
-            return selected;
-        }
-    }
 }
+
 
 void add_menu_item(dmenu_list_t *menu, char *label, dmenu_callback_t callback)
 {
