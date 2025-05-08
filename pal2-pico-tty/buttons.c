@@ -50,25 +50,19 @@ static void oled_progress(ssd1306_tty_t *tty,
                           uint32_t sent, uint32_t total,
                           const char *file_name)
 {
+    if (total == 0) total = 1;                 /* prevent /0               */
+
     uint32_t pct = (sent * 100) / total;             /* 0–100       */
     uint32_t filled = (pct * BAR_WIDTH_CHARS) / 100; /* 0–BAR_WIDTH */
 
-    char line[50];
-    snprintf(line, sizeof(line), "%02ld%c", pct, '%');
+    static char line[10];
+
+    sprintf(line, "%3u%%", (unsigned)pct);
 
     ssd1306_draw_string(tty->ssd1306, 1, 1, 3, line);
     ssd1306_draw_string(tty->ssd1306, 4, 25, 1, file_name);
 
     ssd1306_show(tty->ssd1306);
-
-    // ssd1306_tty_set_cursor(tty, 0, tty->rows - 1);   /* bottom row  */
-
-    // ssd1306_tty_putc(tty, '[');
-    // for (uint32_t i = 0; i < BAR_WIDTH_CHARS; ++i)
-    //     ssd1306_tty_putc(tty, i < filled ? '#' : ' ');
-
-    // ssd1306_tty_printf(tty, "] %3lu%%", (unsigned long)pct);
-    // ssd1306_tty_show(tty); /* blit once   */
 }
 
 void init_buttons(void)

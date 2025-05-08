@@ -15,7 +15,8 @@ extern "C"
 #define MAX_NAME_LEN 64
 #define MAX_PATH_LEN 256
 #define DRIVE_PATH "0:"
-#define PTP_PATH "/kim-1/basic"
+//#define PTP_PATH "/kim-1/basic"
+#define PTP_PATH ""
 
 
     typedef struct DirEntry
