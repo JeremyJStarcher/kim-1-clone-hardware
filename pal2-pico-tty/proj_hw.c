@@ -14,6 +14,7 @@
 #include "hardware/uart.h"
 
 #include "proj_hw.h"
+#include "debug.h"
 
 const uint32_t PIN_LED = 25; // only for Pico
 static bool _picoW = true;
@@ -65,11 +66,11 @@ void test_button(void)
     {
         if (get_bootsel_button())
         {
-            printf("TRUE\r\n");
+            debug_printf("TRUE\r\n");
         }
         else
         {
-            printf("FALSE\r\n");
+            debug_printf("FALSE\r\n");
         }
         sleep_ms(100);
     }
@@ -212,11 +213,11 @@ bool configure_hardware()
             printf("cyw43 init failed\r\n");
             return false;
         }
-        printf("Pico W\r\n");
+        debug_printf("Pico W\r\n");
     }
     else
     {
-        printf("Pico\r\n");
+        debug_printf("Pico\r\n");
         // LED
         gpio_init(PIN_LED);
         gpio_set_dir(PIN_LED, GPIO_OUT);

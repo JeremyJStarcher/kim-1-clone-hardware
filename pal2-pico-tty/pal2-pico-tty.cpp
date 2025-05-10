@@ -7,22 +7,19 @@
 #include "pico/cyw43_arch.h"
 #include "hardware/uart.h"
 #include "pico/binary_info.h"
-// #include "malloc.h"
-#include "pico/time.h"
-#include "buttons.h"
+#include "malloc.h"
 
 #include "sd-card/sd-card.h"
-
-#include "font.h"
-
+#include "proj_hw.h"
+#include "buttons.h"
 #include "blink.pio.h"
 #include "ssd1306.h"
 #include "proj_hw.h"
 #include "tty_switch_passthrough.h"
-
-#define USB_TIMEOUT_US (1 * 1000000)
+#include "font.h"
 
 static void reset_pal(void);
+static void ssd1306_set_status(ssd1306_t *disp, const char *s);
 void main_loop(ssd1306_tty_t *tty);
 
 void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq)
@@ -37,28 +34,17 @@ void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq)
     pio->txf[sm] = (125000000 / (2 * freq)) - 3;
 }
 
-static void wait_for_usb_with_timeout()
-{
-    uint64_t start_time = time_us_64();
-    while (!stdio_usb_connected())
-    {
-        if (time_us_64() - start_time >= USB_TIMEOUT_US)
-        {
-            break;
-        }
-        tight_loop_contents();
-    }
-}
-
 int main()
 {
     stdio_init_all();
 
-    wait_for_usb_with_timeout();
+    /* Wait until someone opens the USB serial port.                         */
+    while (!stdio_usb_connected())
+    {
+        tight_loop_contents();
+    }
 
     configure_hardware();
-
-    init_buttons();
 
     // // Initialise the Wi-Fi chip
     // if (cyw43_arch_init()) {
@@ -83,27 +69,20 @@ int main()
     gpio_put(PIN_CS, 1);
     // For more examples of SPI use see https://github.com/raspberrypi/pico-examples/tree/master/spi
 
+    // I2C Initialisation. Using it at 400Khz.
+    i2c_init(I2C_PORT, 400 * 1000);
+
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SDA);
     gpio_pull_up(I2C_SCL);
     // For more examples of I2C use see https://github.com/raspberrypi/pico-examples/tree/master/i2c
 
-    // PIO Blinking example
-    PIO pio = pio0;
-    uint offset = pio_add_program(pio, &blink_program);
-    printf("Loaded program at %d\n", offset);
-
-#ifdef PICO_DEFAULT_LED_PIN
-    blink_pin_forever(pio, 0, offset, PICO_DEFAULT_LED_PIN, 3);
-#else
-    blink_pin_forever(pio, 0, offset, 6, 3);
-#endif
-    // For more pio examples see https://github.com/raspberrypi/pico-examples/tree/master/pio
-
     // Example to turn on the Pico W LED
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
 
+    // Set up our UART
+    uart_init(PAL_UART, BAUD_RATE);
     // Set the TX and RX pins by using the function select on the GPIO
     // Set datasheet for more information on function select
     gpio_set_function(PAL_UART_TX_GPIO, GPIO_FUNC_UART);
@@ -134,18 +113,13 @@ int main()
     init_ssd1306(i2c_addr, &disp);
     ssd1306_init_tty(&disp, &tty, font_8x5);
 
-    ssd1306_tty_puts(&tty, "SCANNING DRIVE --");
-    ssd1306_tty_show(&tty);
+    ssd1306_set_status(&disp, "SCANNING DRIVE");
     printf("Scanning drive\r\n");
     int k = prep_sd_card();
     printf("Done scanning drive\r\n");
+    ssd1306_set_status(&disp, "SCAN COMPLETE");
 
-
-    ssd1306_tty_puts(&tty, "Done\n");
-    ssd1306_tty_show(&tty);
-
-    ssd1306_tty_puts(&tty, "Scanning RAM");
-    ssd1306_tty_show(&tty);
+    ssd1306_set_status(&disp, "SCANNING RAM");
     size_t mem_size1 = get_largest_alloc_block_binary2(1, 1024 * 1024);
     size_t freeK = (size_t)(mem_size1 / 1024);
 
@@ -153,18 +127,28 @@ int main()
 
     int y = 0;
     int ss = 1;
+    ssd1306_clear(&disp);
+    ssd1306_printf(&disp, 0, y, ss, "FREE RAM:");
+    ssd1306_printf(&disp, 0, y + (8 * ss * 1), ss, "%dK", freeK);
+    ssd1306_printf(&disp, 0, y + (8 * ss * 2), ss, "%d\r\n", mem_size1);
+    ssd1306_show(&disp);
 
-    ssd1306_tty_printf(&tty, "FREE RAM: %dK %d\n", freeK, mem_size1);
-    ssd1306_tty_show(&tty);
+    init_buttons();
 
-    switch_passthrough_init();
+    jjs_init();
 
     main_loop(&tty);
     while (false)
     {
-        //  printf("Hello, world!\n");
-        sleep_ms(1000);
+        tight_loop_contents();
     }
+}
+
+static void ssd1306_set_status(ssd1306_t *disp, const char *s)
+{
+    ssd1306_clear(disp);
+    ssd1306_draw_string(disp, 0, 24, 1, s);
+    ssd1306_show(disp);
 }
 
 static void reset_pal(void)
@@ -176,7 +160,8 @@ static void reset_pal(void)
     gpio_set_dir(PAL_RESET_GPIO, GPIO_IN); /* release */
 }
 
-void show_default_text(ssd1306_tty_t *tty) {
+void show_default_text(ssd1306_tty_t *tty)
+{
     ssd1306_tty_cls(tty);
     ssd1306_tty_puts(tty, " TTY MODE\n");
     ssd1306_tty_puts(tty, " USB<->PAL2\n");
@@ -187,38 +172,11 @@ void show_default_text(ssd1306_tty_t *tty) {
 
 void main_loop(ssd1306_tty_t *tty)
 {
-    ssd1306_tty_puts(tty, "Resetting PAL...");
-    ssd1306_tty_show(tty);
-
     reset_pal();
-    ssd1306_tty_puts(tty, " done\n");
-    ssd1306_tty_show(tty);
-
-    ssd1306_tty_puts(tty, "Boot successful, in main loop\n");
-    ssd1306_tty_show(tty);
-
     show_default_text(tty);
 
     while (true)
     {
-        // if (btn.rewind)
-        // {
-        //     ssd1306_tty_puts(tty, "REWIND pressed\n", 0);
-        // }
-        // if (btn.play)
-        // {
-        //     ssd1306_tty_puts(tty, "PLAY pressed\n", 0);
-        // }
-        // if (btn.fast_forward)
-        // {
-        //     ssd1306_tty_puts(tty, "FAST FORWARD pressed\n", 0);
-        // }
-        // if (btn.record)
-        // {
-        //     ssd1306_tty_puts(tty, "RECORD pressed\n", 0);
-        // }
-        // ssd1306_tty_show(tty);
-
         bool idle = true;
 
         /* USB‑>PAL */

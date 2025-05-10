@@ -33,6 +33,7 @@ SOFTWARE.
 
 #include "ssd1306.h"
 #include "font.h"
+#include "debug.h"
 
 static bool text_inv_mode = false;
 void ssd1306_tty_show2(ssd1306_tty_t *tty);
@@ -393,7 +394,7 @@ void ssd1306_tty_set_scale(ssd1306_tty_t *tty, int scale)
     tty->scale = scale;
     tty->height = tty->ssd1306->height / tty->font_height;
     tty->width = tty->ssd1306->width / tty->font_width;
-    printf("TTY CONFIG: height/width %d/%d\n", tty->height, tty->width);
+    debug_printf("TTY CONFIG: height/width %d/%d\n", tty->height, tty->width);
 }
 
 void ssd1306_tty_set_font(ssd1306_tty_t *tty, const uint8_t *font, int scale)
@@ -403,7 +404,7 @@ void ssd1306_tty_set_font(ssd1306_tty_t *tty, const uint8_t *font, int scale)
     tty->font = font;
     ssd1306_tty_set_scale(tty, scale);
 
-    printf("TTY CONFIG: height/width %d/%d\n", tty->height, tty->width);
+    debug_printf("TTY CONFIG: height/width %d/%d\n", tty->height, tty->width);
 }
 
 void ssd1306_tty_scroll(ssd1306_tty_t *tty)
@@ -503,19 +504,17 @@ void ssd1306_tty_show2(ssd1306_tty_t *tty)
     ssd1306_show(tty->ssd1306);
 }
 
-
- void ssd1306_tty_show(ssd1306_tty_t *tty)
+void ssd1306_tty_show(ssd1306_tty_t *tty)
 {
     // ssd1306_tty_show2(tty);               // original routine
     // return;
 
-    uint64_t t0 = time_us_64();          // start‑stamp
-    ssd1306_tty_show2(tty);               // original routine
-    uint64_t dt = time_us_64() - t0;     // elapsed
+    uint64_t t0 = time_us_64();      // start‑stamp
+    ssd1306_tty_show2(tty);          // original routine
+    uint64_t dt = time_us_64() - t0; // elapsed
 
-    printf("Time to draw screen %" PRIu64 " µs\n", dt);
+    debug_printf("Time to draw screen %" PRIu64 " µs\n", dt);
     //    return (uint32_t)dt;                 // ≤ ~71 min fits in 32 bits
-
 }
 
 void ssd1306_init_tty(ssd1306_t *p, ssd1306_tty_t *tty, const uint8_t *font)

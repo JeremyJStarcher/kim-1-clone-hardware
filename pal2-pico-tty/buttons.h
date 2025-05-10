@@ -28,7 +28,7 @@ extern "C"
 
 #define MAX_MENU_ITEMS 32 // or whatever fits in memory safely
 
-  typedef void (*dmenu_callback_t)(ssd1306_tty_t *tty);
+  typedef int (*dmenu_callback_t)(ssd1306_tty_t *tty);
 
   typedef struct
   {
@@ -47,12 +47,11 @@ extern "C"
 
   button_state_t read_buttons_struct(void);
 
-  dmenu_item_t* add_menu_item(dmenu_list_t *menu, char *label, dmenu_callback_t callback);
+  dmenu_item_t *add_menu_item(dmenu_list_t *menu, char *label, dmenu_callback_t callback);
   int menu_select(ssd1306_tty_t *tty, dmenu_list_t *menu);
   void free_menu(dmenu_list_t *menu);
   int process_menu(ssd1306_tty_t *tty);
   int process_menu_inner(ssd1306_tty_t *tty, dmenu_list_t *menu);
-
 
 #ifdef __cplusplus
 }
