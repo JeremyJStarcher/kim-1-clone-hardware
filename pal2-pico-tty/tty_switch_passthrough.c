@@ -6,6 +6,7 @@
 #include "stdlib.h"
 
 #include "proj_hw.h"
+#include "debug.h"
 
 void enable_switch_mirror(PIO pio, uint sm)
 {
@@ -52,7 +53,7 @@ void switch_passthrough_init()
     }
 
     enable_switch_mirror(pio, (uint)sm);
-    printf("State machine init\n");
+    debug_printf("State machine init\n");
 
     // sleep_ms(10 * 1000);
     disable_switch_mirror(pio, sm);

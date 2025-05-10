@@ -19,6 +19,7 @@
 #include "ssd1306.h"
 #include "proj_hw.h"
 #include "tty_switch_passthrough.h"
+#include "debug.h"
 
 #define USB_TIMEOUT_US (1 * 1000000)
 
@@ -30,7 +31,7 @@ void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq)
     blink_program_init(pio, sm, offset, pin);
     pio_sm_set_enabled(pio, sm, true);
 
-    printf("Blinking pin %d at %d Hz\n", pin, freq);
+    debug_printf("Blinking pin %d at %d Hz\n", pin, freq);
 
     // PIO counter program takes 3 more cycles in total than we pass as
     // input (wait for n + 1; mov; jmp)
@@ -92,7 +93,7 @@ int main()
     // PIO Blinking example
     PIO pio = pio0;
     uint offset = pio_add_program(pio, &blink_program);
-    printf("Loaded program at %d\n", offset);
+    debug_printf("Loaded program at %d\n", offset);
 
 #ifdef PICO_DEFAULT_LED_PIN
     blink_pin_forever(pio, 0, offset, PICO_DEFAULT_LED_PIN, 3);
@@ -113,19 +114,19 @@ int main()
     // In a default system, printf will also output via the default UART
 
     // Send out a string, with CR/LF conversions
-    uart_puts(PAL_UART, " Hello, UART!\n");
+    // uart_puts(PAL_UART, " Hello, UART!\n");
 
     // For more examples of UART use see https://github.com/raspberrypi/pico-examples/tree/master/uart
 
-    printf("Scanning I²C\r\n");
+    debug_printf("Scanning I²C\r\n");
     int i2c_addr = scan_i2c_bus();
     if (i2c_addr >= 0)
     {
-        printf("First I²C device @ 0x%02X\r\n", i2c_addr);
+        debug_printf("First I²C device @ 0x%02X\r\n", i2c_addr);
     }
     else
     {
-        printf("No I²C devices detected\r\n");
+        debug_printf("No I²C devices detected\r\n");
     }
 
     ssd1306_t disp;
@@ -136,10 +137,9 @@ int main()
 
     ssd1306_tty_puts(&tty, "SCANNING DRIVE --");
     ssd1306_tty_show(&tty);
-    printf("Scanning drive\r\n");
+    debug_printf("Scanning drive\r\n");
     int k = prep_sd_card();
-    printf("Done scanning drive\r\n");
-
+    debug_printf("Done scanning drive\r\n");
 
     ssd1306_tty_puts(&tty, "Done\n");
     ssd1306_tty_show(&tty);
@@ -149,7 +149,7 @@ int main()
     size_t mem_size1 = get_largest_alloc_block_binary2(1, 1024 * 1024);
     size_t freeK = (size_t)(mem_size1 / 1024);
 
-    printf("(binary) Largest chunk of free heap = %d %d\r\n", mem_size1, freeK);
+    debug_printf("(binary) Largest chunk of free heap = %d %d\r\n", mem_size1, freeK);
 
     int y = 0;
     int ss = 1;
@@ -176,7 +176,8 @@ static void reset_pal(void)
     gpio_set_dir(PAL_RESET_GPIO, GPIO_IN); /* release */
 }
 
-void show_default_text(ssd1306_tty_t *tty) {
+void show_default_text(ssd1306_tty_t *tty)
+{
     ssd1306_tty_cls(tty);
     ssd1306_tty_puts(tty, " TTY MODE\n");
     ssd1306_tty_puts(tty, " USB<->PAL2\n");

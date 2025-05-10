@@ -10,22 +10,24 @@
 #include "tf_card.h"
 #include "ff.h"
 
-
 #define MAX_NAME_LEN 64
 #define MAX_PATH_LEN 256
 
-typedef struct DirEntry {
+typedef struct DirEntry
+{
     char name[MAX_NAME_LEN];
     int is_dir;
 
-    struct DirEntry *sibling;   // Next item in the same directory
-    struct DirEntry *children;  // First child (if is_dir)
+    struct DirEntry *sibling;  // Next item in the same directory
+    struct DirEntry *children; // First child (if is_dir)
 } DirEntry;
 
-static DirEntry* create_entry(const char *name, int is_dir) {
+static DirEntry *create_entry(const char *name, int is_dir)
+{
     DirEntry *entry = (DirEntry *)malloc(sizeof(DirEntry));
-    if (!entry) {
-        printf("directory scan (create_entyr) out-of-memory\r\n");
+    if (!entry)
+    {
+        debug_printf("directory scan (create_entyr) out-of-memory\r\n");
         return NULL;
     }
     strncpy(entry->name, name, MAX_NAME_LEN - 1);
@@ -40,8 +42,7 @@ FRESULT build_tree(const char *path, DirEntry **out_node);
 void print_tree(DirEntry *node, int level);
 void free_tree(DirEntry *node);
 
-
-const uint32_t PIN_LED = 25;  // only for Pico
+const uint32_t PIN_LED = 25; // only for Pico
 bool _picoW = true;
 bool _led = false;
 
@@ -67,11 +68,11 @@ const uint8_t READ_COUNT = 2;
 // End of configuration constants.
 //------------------------------------------------------------------------------
 // File size in bytes.
-const uint32_t FILE_SIZE = 1000000UL*FILE_SIZE_MB;
+const uint32_t FILE_SIZE = 1000000UL * FILE_SIZE_MB;
 
 // Insure 4-byte alignment.
-uint32_t zbuf32[(BUF_SIZE + 3)/4];
-uint8_t* zbuf = (uint8_t*)zbuf32;
+uint32_t zbuf32[(BUF_SIZE + 3) / 4];
+uint8_t *zbuf = (uint8_t *)zbuf32;
 
 static bool _check_pico_w()
 {
@@ -92,20 +93,28 @@ static bool _check_pico_w()
     gpio_set_function(25, fnc);
     gpio_set_dir(25, dir);
 
-    if (gp25) {
+    if (gp25)
+    {
         return true; // Can't tell, so assume yes
-    } else if (adc29 < 200) {
+    }
+    else if (adc29 < 200)
+    {
         return true; // PicoW
-    } else {
+    }
+    else
+    {
         return false;
     }
 }
 
 static void _set_led(bool flag)
 {
-    if (_picoW) {
+    if (_picoW)
+    {
         cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, flag);
-    } else {
+    }
+    else
+    {
         gpio_put(PIN_LED, flag);
     }
     _led = flag;
@@ -118,8 +127,10 @@ static void _toggle_led()
 
 static void _error_blink(int count)
 {
-    while (true) {
-        for (int i = 0; i < count; i++) {
+    while (true)
+    {
+        for (int i = 0; i < count; i++)
+        {
             _set_led(true);
             sleep_ms(250);
             _set_led(false);
@@ -143,7 +154,7 @@ int main()
 {
     FATFS fs;
     FIL fil;
-    FRESULT fr;     /* FatFs return code */
+    FRESULT fr; /* FatFs return code */
     UINT br;
     UINT bw;
 
@@ -157,31 +168,34 @@ int main()
     stdio_init_all();
 
     /* Wait until someone opens the USB serial port.                         */
-    while (!stdio_usb_connected()) {
+    while (!stdio_usb_connected())
+    {
         tight_loop_contents();
     }
-   
 
-    printf("Running int\r\n");
+    debug_printf("Running int\r\n");
 
-    
     // // Initialise UART 0
     // uart_init(uart0, 115200);
     // // Set the GPIO pin mux to the UART - 0 is TX, 1 is RX
     // gpio_set_function(0, GPIO_FUNC_UART);
     // gpio_set_function(1, GPIO_FUNC_UART);
 
-    printf("\n");
+    debug_printf("\n");
 
     _picoW = _check_pico_w();
     // Pico / Pico W dependencies
-    if (_picoW) {
-        if (cyw43_arch_init()) {  // this is needed for driving LED
+    if (_picoW)
+    {
+        if (cyw43_arch_init())
+        { // this is needed for driving LED
             printf("cyw43 init failed\r\n");
             return 1;
         }
         printf("Pico W\r\n");
-    } else {
+    }
+    else
+    {
         printf("Pico\r\n");
         // LED
         gpio_init(PIN_LED);
@@ -189,17 +203,16 @@ int main()
     }
     _set_led(false);
 
-
     printf("Type any character to start\n");
-    while(true) {
+    while (true)
+    {
         int ch_usb = getchar_timeout_us(0);
-        if (ch_usb != PICO_ERROR_TIMEOUT) {
+        if (ch_usb != PICO_ERROR_TIMEOUT)
+        {
             break;
-           // uart_putc_raw(PAL_UART, (uint8_t)ch_usb);
+            // uart_putc_raw(PAL_UART, (uint8_t)ch_usb);
         }
     }
-
-
 
     // printf("Type any character to start\n");
     // while (!uart_is_readable_within_us(uart0, 1000));
@@ -228,39 +241,45 @@ int main()
         9,
         10,
         11,
-        true  // use internal pullup
+        true // use internal pullup
     };
 
     pico_fatfs_set_config(&config);
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++)
+    {
         fr = f_mount(&fs, "", 1);
-        if (fr == FR_OK) { break; }
+        if (fr == FR_OK)
+        {
+            break;
+        }
         printf("mount error %d -> retry %d\n", fr, i);
         pico_fatfs_reboot_spi();
     }
-    if (fr != FR_OK) {
+    if (fr != FR_OK)
+    {
         printf("mount error %d\n", fr);
         _error_blink(1);
     }
     printf("mount ok\n");
 
-    switch (fs.fs_type) {
-        case FS_FAT12:
-            printf("Type is FAT12\n");
-            break;
-        case FS_FAT16:
-            printf("Type is FAT16\n");
-            break;
-        case FS_FAT32:
-            printf("Type is FAT32\n");
-            break;
-        case FS_EXFAT:
-            printf("Type is EXFAT\n");
-            break;
-        default:
-            printf("Type is unknown\n");
-            break;
+    switch (fs.fs_type)
+    {
+    case FS_FAT12:
+        printf("Type is FAT12\n");
+        break;
+    case FS_FAT16:
+        printf("Type is FAT16\n");
+        break;
+    case FS_FAT32:
+        printf("Type is FAT32\n");
+        break;
+    case FS_EXFAT:
+        printf("Type is EXFAT\n");
+        break;
+    default:
+        printf("Type is unknown\n");
+        break;
     }
     printf("Card size: %7.2f GB (GB = 1E9 bytes)\n\n", fs.csize * fs.n_fatent * 512E-9);
 
@@ -413,16 +432,18 @@ int main()
 
     DirEntry *root = NULL;
 
-   // if (f_mount(&fs, "", 1) == FR_OK) {
-        if (build_tree("/", &root) == FR_OK) {
-            print_tree(root, 0);
-            // Work with `root` as needed...
-            free_tree(root);
-        }
-   // }
+    // if (f_mount(&fs, "", 1) == FR_OK) {
+    if (build_tree("/", &root) == FR_OK)
+    {
+        print_tree(root, 0);
+        // Work with `root` as needed...
+        free_tree(root);
+    }
+    // }
 
     // OK blink
-    while (true) {
+    while (true)
+    {
         _set_led(true);
         sleep_ms(1000);
         _set_led(false);
@@ -432,9 +453,8 @@ int main()
     return 0;
 }
 
-
-
-FRESULT build_tree(const char *path, DirEntry **out_node) {
+FRESULT build_tree(const char *path, DirEntry **out_node)
+{
     FRESULT res;
     DIR dir;
     FILINFO fno;
@@ -442,26 +462,37 @@ FRESULT build_tree(const char *path, DirEntry **out_node) {
     DirEntry *head = NULL, *tail = NULL;
 
     res = f_opendir(&dir, path);
-    if (res != FR_OK) return res;
+    if (res != FR_OK)
+        return res;
 
-    while (1) {
+    while (1)
+    {
         res = f_readdir(&dir, &fno);
-        if (res != FR_OK || fno.fname[0] == 0) break;
-        if (fno.fname[0] == '.') continue;
+        if (res != FR_OK || fno.fname[0] == 0)
+            break;
+        if (fno.fname[0] == '.')
+            continue;
 
         int is_dir = (fno.fattrib & AM_DIR) != 0;
         DirEntry *entry = create_entry(fno.fname, is_dir);
-        if (!entry) {
+        if (!entry)
+        {
             f_closedir(&dir);
             return FR_NOT_ENOUGH_CORE;
         }
 
         // Append to current list
-        if (!head) head = tail = entry;
-        else { tail->sibling = entry; tail = entry; }
+        if (!head)
+            head = tail = entry;
+        else
+        {
+            tail->sibling = entry;
+            tail = entry;
+        }
 
         // Recurse into subdirectories
-        if (is_dir) {
+        if (is_dir)
+        {
             snprintf(full_path, sizeof(full_path), "%s/%s", path, fno.fname);
             build_tree(full_path, &entry->children);
         }
@@ -472,9 +503,12 @@ FRESULT build_tree(const char *path, DirEntry **out_node) {
     return FR_OK;
 }
 
-void print_tree(DirEntry *node, int level) {
-    while (node) {
-        for (int i = 0; i < level; i++) printf("  ");
+void print_tree(DirEntry *node, int level)
+{
+    while (node)
+    {
+        for (int i = 0; i < level; i++)
+            printf("  ");
         printf("%s%s\n", node->name, node->is_dir ? "/" : "");
         if (node->is_dir)
             print_tree(node->children, level + 1);
@@ -482,8 +516,10 @@ void print_tree(DirEntry *node, int level) {
     }
 }
 
-void free_tree(DirEntry *node) {
-    while (node) {
+void free_tree(DirEntry *node)
+{
+    while (node)
+    {
         DirEntry *next = node->sibling;
         if (node->is_dir && node->children)
             free_tree(node->children);
@@ -491,4 +527,3 @@ void free_tree(DirEntry *node) {
         node = next;
     }
 }
-

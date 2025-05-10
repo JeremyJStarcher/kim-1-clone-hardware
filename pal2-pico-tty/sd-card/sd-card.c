@@ -10,6 +10,7 @@
 #include "pico_fatfs/fatfs/diskio.h"
 
 #include "proj_hw.h"
+#include "debug.h"
 
 #define RUN_PERF_TEST false
 
@@ -101,9 +102,11 @@ int prep_sd_card()
     // printf("Type any character to start\n");
     // while (!uart_is_readable_within_us(uart0, 1000));
 
+#if 0
     printf("=====================\n");
     printf("== pico_fatfs_test ==\n");
     printf("=====================\n");
+#endif
 
     pico_fatfs_set_config(&config);
 
@@ -122,27 +125,27 @@ int prep_sd_card()
         printf("mount error %d\n", fr);
         _error_blink(1);
     }
-    printf("mount ok\n");
+    debug_printf("mount ok\n");
 
     switch (fs.fs_type)
     {
     case FS_FAT12:
-        printf("Type is FAT12\n");
+        debug_printf("Type is FAT12\n");
         break;
     case FS_FAT16:
-        printf("Type is FAT16\n");
+        debug_printf("Type is FAT16\n");
         break;
     case FS_FAT32:
-        printf("Type is FAT32\n");
+        debug_printf("Type is FAT32\n");
         break;
     case FS_EXFAT:
-        printf("Type is EXFAT\n");
+        debug_printf("Type is EXFAT\n");
         break;
     default:
-        printf("Type is unknown\n");
+        debug_printf("Type is unknown\n");
         break;
     }
-    printf("Card size: %7.2f GB (GB = 1E9 bytes)\n\n", fs.csize * fs.n_fatent * 512E-9);
+    debug_printf("Card size: %7.2f GB (GB = 1E9 bytes)\n\n", fs.csize * fs.n_fatent * 512E-9);
 
 #if 0
     // Print CID
@@ -319,6 +322,7 @@ int prep_sd_card()
     printf("\nDone\n");
 #endif
 
+#if 0
     DirEntry *root = NULL;
 
     if (build_tree(DRIVE_PATH PTP_PATH, &root, true) == FR_OK)
@@ -327,6 +331,7 @@ int prep_sd_card()
         // Work with `root` as needed...
         free_tree(root);
     }
+#endif
 
     return 0;
 }

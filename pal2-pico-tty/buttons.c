@@ -8,15 +8,19 @@
 #include "ssd1306.h"
 #include "sd-card/sd-card.h"
 #include "proj_hw.h"
+#include "debug.h"
 
-static const int SHORT_DELAY      = 20;
-static const int LONG_DELAY       = 200;
+static const int SHORT_DELAY = 20;
+static const int LONG_DELAY = 200;
 
-static const int PROGRESS_STEPS   = 100; // granularity: 1%
-static const int BAR_WIDTH_CHARS  = 20;  // ########··············
-
+static const int PROGRESS_STEPS = 100; // granularity: 1%
+static const int BAR_WIDTH_CHARS = 20; // ########··············
 
 static const char DIR_SYMBOLS[] = "[]";
+
+static const int SELECT_RETURN_CLOSE = -1;
+static const int SELECT_RETURN_NOACTION = -2;
+static const int SELECT_RETURN_CLOSE_ALL = -3;
 
 /* ----------------------------------------------------------------
  *  Per‑build tuning — adjust to taste
@@ -51,7 +55,8 @@ static void oled_progress(ssd1306_tty_t *tty,
                           uint32_t sent, uint32_t total,
                           const char *file_name)
 {
-    if (total == 0) total = 1;                 /* prevent /0               */
+    if (total == 0)
+        total = 1; /* prevent /0               */
 
     uint32_t pct = (sent * 100) / total;             /* 0–100       */
     uint32_t filled = (pct * BAR_WIDTH_CHARS) / 100; /* 0–BAR_WIDTH */
@@ -123,7 +128,7 @@ button_state_t read_buttons_struct(void)
             { // rising edge → emit pulse
                 if (i == 0)
                 {
-                    printf("MENU PRESSED\n");
+                    debug_printf("MENU PRESSED\n");
                     event.menu = BUTTON_STATE_PRESSED;
                 }
                 if (i == 1)
@@ -181,7 +186,7 @@ int menu_select(ssd1306_tty_t *tty, dmenu_list_t *menu)
     int top_index = 0;
     bool do_redraw = true;
 
-    printf("MAX_VISIBLE_ITEMS %d\n", MAX_VISIBLE_ITEMS);
+    debug_printf("MAX_VISIBLE_ITEMS %d\n", MAX_VISIBLE_ITEMS);
 
     while (true)
     {
@@ -262,7 +267,7 @@ int menu_select(ssd1306_tty_t *tty, dmenu_list_t *menu)
         }
         else if (btn.menu == BUTTON_STATE_PRESSED)
         {
-            return -1;
+            return SELECT_RETURN_NOACTION;
         }
 
         // Debounce delay
@@ -270,7 +275,7 @@ int menu_select(ssd1306_tty_t *tty, dmenu_list_t *menu)
     }
 }
 
-void menu_about(ssd1306_tty_t *tty)
+int menu_about(ssd1306_tty_t *tty)
 {
     ssd1306_tty_cls(tty);
     ssd1306_tty_puts(tty, "ABOUT");
@@ -281,7 +286,7 @@ void menu_about(ssd1306_tty_t *tty)
         button_state_t btn = read_buttons_struct();
         if (btn.menu)
         {
-            return;
+            return SELECT_RETURN_NOACTION;
         }
     }
 }
@@ -349,7 +354,7 @@ void send_file(ssd1306_tty_t *tty, const char *dir, const char *file_name)
                            (dir[0] && dir[strlen(dir) - 1] != '/') ? "/" : "",
                            file_name);
 
-    printf("FULL FILE NAME %s\n", full_file_name);
+    debug_printf("FULL FILE NAME %s\n", full_file_name);
 
     fr = f_open(&fp, full_file_name, FA_READ);
     if (fr != FR_OK)
@@ -358,7 +363,7 @@ void send_file(ssd1306_tty_t *tty, const char *dir, const char *file_name)
     }
 
     DWORD sz = f_size(&fp); /* Constant-time size fetch          */
-    printf("File: %s  (%lu bytes)\n\n", full_file_name, (unsigned long)sz);
+    debug_printf("File: %s  (%lu bytes)\n\n", full_file_name, (unsigned long)sz);
 
     const DWORD total = f_size(&fp);
     uint32_t last_step = 0; /* last % drawn       */
@@ -368,7 +373,6 @@ void send_file(ssd1306_tty_t *tty, const char *dir, const char *file_name)
     while (f_gets(line, sizeof line, &fp))
     {
         size_t n = strlen(line);
-
 
         for (size_t i = 0; i <= n; i++)
         {
@@ -404,8 +408,9 @@ void send_file(ssd1306_tty_t *tty, const char *dir, const char *file_name)
     f_close(&fp);
 }
 
-void menu_tty_up(ssd1306_tty_t *tty)
+int menu_tty_up(ssd1306_tty_t *tty)
 {
+    int menu_tty_up_return = 0;
     dmenu_list_t menu = {.count = 0};
     DirEntry *root = NULL;
     char current_dir[MAX_PATH_LEN];
@@ -418,7 +423,7 @@ void menu_tty_up(ssd1306_tty_t *tty)
         add_menu_item(&menu, "..", NULL);
         menu.items[0].is_dir = true;
 
-        printf("CURRENT DIRECTORY %s\n", current_dir);
+        debug_printf("CURRENT DIRECTORY %s\n", current_dir);
 
         FRESULT res = build_tree(current_dir, &root, false);
 
@@ -438,19 +443,29 @@ void menu_tty_up(ssd1306_tty_t *tty)
         /* call once after populating `menu` */
         qsort(menu.items, menu.count, sizeof(dmenu_item_t), cmp_items);
 
-        int ret = process_menu_inner(tty, &menu);
-        if (ret == -1)
+        int process_menu_return = process_menu_inner(tty, &menu);
+
+        debug_printf("JJZ: RET = %d\n", process_menu_return);
+
+        if (process_menu_return == SELECT_RETURN_CLOSE)
         {
-            free_tree(root);
-            free_menu(&menu);
-            return;
+            menu_tty_up_return = SELECT_RETURN_NOACTION;
+            break;
         }
 
-        dmenu_item_t item = menu.items[ret];
+        if (process_menu_return == SELECT_RETURN_NOACTION)
+        {
+            menu_tty_up_return = SELECT_RETURN_NOACTION;
+            break;
+        }
+
+        dmenu_item_t item = menu.items[process_menu_return];
 
         if (!item.is_dir)
         {
             send_file(tty, current_dir, item.label);
+            menu_tty_up_return = SELECT_RETURN_CLOSE_ALL;
+            break;
         }
         else
         {
@@ -476,6 +491,10 @@ void menu_tty_up(ssd1306_tty_t *tty)
         free_tree(root);
         free_menu(&menu);
     }
+
+    free_tree(root);
+    free_menu(&menu);
+    return menu_tty_up_return;
 }
 
 int process_menu_inner(ssd1306_tty_t *tty, dmenu_list_t *menu)
@@ -493,7 +512,7 @@ int process_menu_inner(ssd1306_tty_t *tty, dmenu_list_t *menu)
             dmenu_item_t item = menu->items[selected];
             if (item.callback != NULL)
             {
-                item.callback(tty);
+                return item.callback(tty);
             }
             else
             {
