@@ -9,13 +9,14 @@
 #include "sd-card/sd-card.h"
 #include "proj_hw.h"
 
-#define SHORT_DELAY 20
-#define LONG_DELAY 200
+static const int SHORT_DELAY      = 20;
+static const int LONG_DELAY       = 200;
 
-#define PROGRESS_STEPS 100 /* granularity: 1 %          */
-#define BAR_WIDTH_CHARS 20 /* ########··············    */
+static const int PROGRESS_STEPS   = 100; // granularity: 1%
+static const int BAR_WIDTH_CHARS  = 20;  // ########··············
 
-#define DIR_SYMBOL '['
+
+static const char DIR_SYMBOLS[] = "[]";
 
 /* ----------------------------------------------------------------
  *  Per‑build tuning — adjust to taste
@@ -206,8 +207,9 @@ int menu_select(ssd1306_tty_t *tty, dmenu_list_t *menu)
 
             if (menu->items[item_idx].is_dir)
             {
-                line[1] = DIR_SYMBOL;
-                strncat(line, "]", MAX_PATH_LEN - 1);
+                line[1] = DIR_SYMBOLS[0];
+                char s[] = {DIR_SYMBOLS[1], 0};
+                strncat(line, s, MAX_PATH_LEN - 1);
             }
 
             // Prevent the line from running off the screen
