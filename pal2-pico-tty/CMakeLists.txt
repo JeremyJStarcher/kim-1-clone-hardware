@@ -57,7 +57,7 @@ add_executable(
     sd-card/pico_fatfs/fatfs/ffunicode.c
     pico-ssd1306/ssd1306.c
     proj_hw.c
-    tty_switch_passthrough.c
+    pal-io.c
     buttons.c
 )
 

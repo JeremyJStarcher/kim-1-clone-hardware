@@ -15,7 +15,7 @@
 #include "blink.pio.h"
 #include "ssd1306.h"
 #include "proj_hw.h"
-#include "tty_switch_passthrough.h"
+#include "pal-io.h"
 #include "font.h"
 
 static void reset_pal(void);

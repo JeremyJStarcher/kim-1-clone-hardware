@@ -1,6 +1,6 @@
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
-#include "tty_switch_passthrough.h"
+#include "pal-io.h"
 #include "tty_switch_passthrough.pio.h"
 #include "stdio.h"
 #include "stdlib.h"
