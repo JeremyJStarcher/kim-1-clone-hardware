@@ -3,12 +3,18 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "string.h"
+#include "strings.h"
 
 #include "buttons.h"
 #include "ssd1306.h"
 #include "sd-card/sd-card.h"
 #include "proj_hw.h"
 #include "debug.h"
+
+#define ESC "\x1b[" /* or "\033["                    */
+#define RED ESC "31m"
+#define YELLOW ESC "33m"
+#define RESET ESC "0m"
 
 static const int SHORT_DELAY = 20;
 static const int LONG_DELAY = 200;
@@ -339,7 +345,58 @@ void path_up(char *path)
     }
 }
 
-void send_file(ssd1306_tty_t *tty, const char *dir, const char *file_name)
+void send_char_to_pal(char ch)
+{
+
+    uart_putc_raw(PAL_UART, (uint8_t)ch);
+
+    if (ch == '\r' || ch == '\n')
+    {
+        sleep_ms(LONG_DELAY);
+    }
+    else
+    {
+        sleep_ms(SHORT_DELAY);
+    }
+
+    while (!uart_is_readable(PAL_UART))
+    {
+        sleep_ms(1);
+    }
+    int ch_pal = uart_getc(PAL_UART);
+    char s[5] = {0};
+    s[0] = ch_pal;
+    s[1] = 0;
+
+    printf(RED "%s" RESET, s);
+}
+
+void send_line_to_pal(const char *line)
+{
+    size_t n = strlen(line);
+
+    for (size_t i = 0; i <= n; i++)
+    {
+        char ch = line[i];
+        send_char_to_pal(ch);
+    }
+    if (n && line[n - 1] != '\n')
+    {
+        send_char_to_pal('\n');
+    }
+
+    while (uart_is_readable(PAL_UART))
+    {
+        int ch_pal = uart_getc(PAL_UART);
+        char s[5] = {0};
+        s[0] = ch_pal;
+        s[1] = 0;
+
+        printf(YELLOW "%s" RESET, s);
+    }
+}
+
+void send_file_to_pal(ssd1306_tty_t *tty, const char *dir, const char *file_name)
 {
 #define LINE_BUF_LEN 255
 
@@ -372,25 +429,11 @@ void send_file(ssd1306_tty_t *tty, const char *dir, const char *file_name)
 
     while (f_gets(line, sizeof line, &fp))
     {
+        send_line_to_pal(line);
         size_t n = strlen(line);
-
-        for (size_t i = 0; i <= n; i++)
-        {
-            char ch = line[i];
-            uart_putc_raw(PAL_UART, (uint8_t)line[i]);
-            if (ch == '\r' || ch == '\n')
-            {
-                sleep_ms(LONG_DELAY);
-            }
-            else
-            {
-                sleep_ms(SHORT_DELAY);
-            }
-        }
         if (n && line[n - 1] != '\n')
         {
-            uart_putc_raw(PAL_UART, (uint8_t)'\n');
-            sleep_ms(LONG_DELAY);
+            send_char_to_pal('\n');
         }
 
         uint32_t sent = f_tell(&fp); /* bytes already read   */
@@ -402,6 +445,14 @@ void send_file(ssd1306_tty_t *tty, const char *dir, const char *file_name)
             oled_progress(tty, sent, total, file_name);
             /* term_progress(sent, total);     <-- enable if no OLED   */
         }
+    }
+
+    puts("LOOKING FOR UPLOAD RESPONSE\n");
+    while (uart_is_readable(PAL_UART))
+    {
+        int ch_pal = uart_getc(PAL_UART);
+        putchar_raw('#');
+        putchar_raw(ch_pal);
     }
 
     oled_progress(tty, total, total, file_name);
@@ -463,7 +514,7 @@ int menu_tty_up(ssd1306_tty_t *tty)
 
         if (!item.is_dir)
         {
-            send_file(tty, current_dir, item.label);
+            send_file_to_pal(tty, current_dir, item.label);
             menu_tty_up_return = SELECT_RETURN_CLOSE_ALL;
             break;
         }
@@ -562,4 +613,19 @@ void free_menu(dmenu_list_t *menu)
         menu->items[i].is_dir = false;
     }
     menu->count = 0;
+}
+
+bool ends_with(const char *str, const char *suffix)
+{
+    if (!str || !suffix) /* defensive programming           */
+        return false;
+
+    size_t len_str = strlen(str);
+    size_t len_suffix = strlen(suffix);
+
+    if (len_suffix > len_str) /* suffix longer than string → no  */
+        return false;
+
+    /* Compare the tail of str to suffix */
+    return strncasecmp(str + len_str - len_suffix, suffix, len_suffix) == 0;
 }
