@@ -20,8 +20,11 @@ extern "C"
 
     typedef struct
     {
-        uint32_t baud;
-        bool hard_reset;
+        uint16_t baud;
+        uint16_t ch_delay;
+        uint16_t line_delay;
+
+        bool use_hard_reset;
         char toggle_char;
     } user_config_t;
 

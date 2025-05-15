@@ -10,14 +10,12 @@
 #include "sd-card/sd-card.h"
 #include "proj_hw.h"
 #include "debug.h"
+#include "config.h"
 
 #define ESC "\x1b[" /* or "\033["                    */
 #define RED ESC "31m"
 #define YELLOW ESC "33m"
 #define RESET ESC "0m"
-
-static const int SHORT_DELAY = 50;
-static const int LONG_DELAY = 500;
 
 static const int PROGRESS_STEPS = 100; // granularity: 1%
 static const int BAR_WIDTH_CHARS = 20; // ########··············
@@ -79,7 +77,6 @@ static void oled_progress(ssd1306_tty_t *tty,
 
 void init_buttons(void)
 {
-
     for (int i = 0; i < sizeof(button_pins) / sizeof(button_pins[0]); ++i)
     {
         uint pin = button_pins[i];
@@ -352,11 +349,11 @@ void send_char_to_pal(char ch)
 
     if (ch == '\r' || ch == '\n')
     {
-        sleep_ms(LONG_DELAY);
+        sleep_ms(user_config.line_delay);
     }
     else
     {
-        sleep_ms(SHORT_DELAY);
+        sleep_ms(user_config.ch_delay);
     }
 
     while (!uart_is_readable(PAL_UART))

@@ -11,8 +11,6 @@
 
 #include "config.h"
 
-
-
 pal_config_t system_config = {
     .usb_connected = false,
     .oled_address = 0x3C,
@@ -21,7 +19,9 @@ pal_config_t system_config = {
 
 user_config_t user_config = {
     .baud = 9600,
-    .hard_reset = true,
+    .ch_delay = 20,
+    .line_delay = 200,
+    .use_hard_reset = true,
     .toggle_char = '~'};
 
 #define CONFIG_FILENAME "config.txt"
@@ -32,18 +32,37 @@ static bool parse_bool(const char *s)
     return strcasecmp(s, "true") == 0 || strcmp(s, "1") == 0;
 }
 
-static void trim(char *s)
-{
-    char *end;
-    while (isspace((unsigned char)*s))
-        s++;
-    if (*s == 0)
-        return;
+#include <ctype.h>
+#include <string.h>
 
-    end = s + strlen(s) - 1;
-    while (end > s && isspace((unsigned char)*end))
-        end--;
-    end[1] = '\0';
+/* Destructively strip leading and trailing ASCII whitespace. */
+void trim(char *str)
+{
+    char *start = str; /* first non-space */
+    char *end;
+
+    /* 1. Skip leading whitespace */
+    while (*start && isspace((unsigned char)*start))
+        ++start;
+
+    /* 2. If the string is all spaces, leave a single NUL and return */
+    if (*start == '\0')
+    {
+        *str = '\0';
+        return;
+    }
+
+    /* 3. Locate last non-space character */
+    end = start + strlen(start) - 1;
+    while (end > start && isspace((unsigned char)*end))
+        --end;
+
+    /* 4. Add new terminator just after the last non-space */
+    *(end + 1) = '\0';
+
+    /* 5. Move the trimmed text to the front if we skipped leading spaces */
+    if (start != str)
+        memmove(str, start, end - start + 2); /* +2 to copy the NUL */
 }
 
 // Load config from a text file
@@ -66,21 +85,22 @@ bool load_config_from_sd(void)
         trim(key);
         trim(value);
 
-        // if (strcasecmp(key, "usb_connected") == 0)
-        //     system_config.usb_connected = parse_bool(value);
-        // else if (strcasecmp(key, "oled_address") == 0)
-        //     system_config.oled_address = (uint8_t)atoi(value);
-        // else if (strcasecmp(key, "tty_mode") == 0)
-        //     system_config.tty_mode = parse_bool(value);
-        // else if (strcasecmp(key, "soft_version") == 0)
-        //     system_config.soft_version = strdup(value);  // Note: watch for heap use
+        // printf("KEY/VAL %s: %s\n", key, value);
 
         if (strcasecmp(key, "baud") == 0)
-            user_config.baud = (uint32_t)atoi(value);
-        else if (strcasecmp(key, "hard_reset") == 0)
-            user_config.hard_reset = parse_bool(value);
+            user_config.baud = (uint16_t)atoi(value);
+        else if (strcasecmp(key, "ch_delay") == 0)
+            user_config.ch_delay = (uint16_t)atoi(value);
+        else if (strcasecmp(key, "line_delay") == 0)
+            user_config.line_delay = (uint16_t)atoi(value);
+
+        else if (strcasecmp(key, "use_hard_reset") == 0)
+            user_config.use_hard_reset = parse_bool(value);
         else if (strcasecmp(key, "toggle_char") == 0)
+        {
+            // printf("VALUE[0] %d %d %d\n", value[0], value[1], value[2]);
             user_config.toggle_char = value[0];
+        }
     }
 
     f_close(&file);
@@ -96,17 +116,21 @@ bool save_config_to_sd(void)
 
     char buf[128];
     snprintf(buf, sizeof(buf),
-             "baud = %u\n"
+             "baud = %d\n"
+             "ch_delay = %d\n"
+             "line_delay = %d\n"
              "hard_reset = %s\n"
              "toggle_char = %c\n",
              user_config.baud,
-             user_config.hard_reset ? "true" : "false",
+             user_config.ch_delay,
+             user_config.line_delay,
+             user_config.use_hard_reset ? "true" : "false",
              user_config.toggle_char);
 
     UINT bw;
     FRESULT fr = f_write(&file, buf, strlen(buf), &bw);
 
     f_close(&file);
-    
+
     return (fr == FR_OK && bw == strlen(buf));
 }

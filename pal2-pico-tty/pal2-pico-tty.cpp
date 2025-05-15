@@ -62,7 +62,6 @@ int main()
     //     return -1;
     // }
 
-
     // SPI initialisation. This example will use SPI at 1MHz.
     spi_init(SPI_PORT, 1000 * 1000);
     gpio_set_function(PIN_MISO, GPIO_FUNC_SPI);
@@ -128,11 +127,10 @@ int main()
     load_config_from_sd();
     save_config_to_sd();
 
-        /* --- UART setup ------------------------------------------------------ */
+    /* --- UART setup ------------------------------------------------------ */
     uart_init(PAL_UART, user_config.baud);
     gpio_set_function(PAL_UART_TX_GPIO, GPIO_FUNC_UART);
     gpio_set_function(PAL_UART_RX_GPIO, GPIO_FUNC_UART);
-
 
     ssd1306_set_status(&disp, "SCANNING RAM");
     size_t mem_size1 = get_largest_alloc_block_binary2(1, 1024 * 1024);
@@ -178,7 +176,7 @@ void show_default_text(ssd1306_tty_t *tty)
         ssd1306_tty_puts(tty, " PAL2 MODE\n");
     }
 
-    ssd1306_tty_puts(tty, "Type '~' to toggle.\n");
+    ssd1306_tty_printf(tty, "Type '%c' to toggle.\n", user_config.toggle_char);
     // ssd1306_tty_puts(tty, " MENU FOR MENU");
     ssd1306_tty_show(tty);
 }
@@ -195,9 +193,8 @@ void main_loop(ssd1306_tty_t *tty)
         /* USB‑>PAL */
         int ch_usb = getchar_timeout_us(0);
 
-        if ((uint8_t)ch_usb == '~')
+        if ((char)ch_usb == user_config.toggle_char)
         {
-
             if (is_tty_mode())
             {
                 printf("TTY MODE DISABLED.\n");
