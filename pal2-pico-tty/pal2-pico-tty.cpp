@@ -33,15 +33,26 @@ void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq)
     pio->txf[sm] = (125000000 / (2 * freq)) - 3;
 }
 
+bool wait_for_usb_connection(uint timeout_ms)
+{
+    const absolute_time_t deadline = make_timeout_time_ms(timeout_ms);
+
+    while (!stdio_usb_connected())
+    {
+        if (absolute_time_diff_us(get_absolute_time(), deadline) <= 0)
+        {
+            return false; // Timed out
+        }
+        sleep_ms(10); // Polling interval
+    }
+    return true; // USB connected
+}
+
 int main()
 {
     stdio_init_all();
 
-    /* Wait until someone opens the USB serial port.                         */
-    while (!stdio_usb_connected())
-    {
-        tight_loop_contents();
-    }
+    bool connected = wait_for_usb_connection(1000);
 
     configure_hardware();
 
