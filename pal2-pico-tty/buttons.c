@@ -16,8 +16,8 @@
 #define YELLOW ESC "33m"
 #define RESET ESC "0m"
 
-static const int SHORT_DELAY = 20;
-static const int LONG_DELAY = 200;
+static const int SHORT_DELAY = 50;
+static const int LONG_DELAY = 500;
 
 static const int PROGRESS_STEPS = 100; // granularity: 1%
 static const int BAR_WIDTH_CHARS = 20; // ########··············

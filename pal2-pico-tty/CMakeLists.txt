@@ -59,6 +59,7 @@ add_executable(
     proj_hw.c
     pal-io.c
     buttons.c
+    config.c
 )
 
 pico_set_program_name(pal2-pico-tty "pal2-pico-tty")

@@ -16,7 +16,7 @@
 #include "ssd1306.h"
 #include "proj_hw.h"
 #include "pal-io.h"
-#include "font.h"
+#include "config.h"
 
 static void ssd1306_set_status(ssd1306_t *disp, const char *s);
 void main_loop(ssd1306_tty_t *tty);
@@ -62,10 +62,6 @@ int main()
     //     return -1;
     // }
 
-    /* --- UART setup ------------------------------------------------------ */
-    uart_init(PAL_UART, BAUD_RATE);
-    gpio_set_function(PAL_UART_TX_GPIO, GPIO_FUNC_UART);
-    gpio_set_function(PAL_UART_RX_GPIO, GPIO_FUNC_UART);
 
     // SPI initialisation. This example will use SPI at 1MHz.
     spi_init(SPI_PORT, 1000 * 1000);
@@ -121,13 +117,22 @@ int main()
     ssd1306_tty_t tty;
 
     init_ssd1306(i2c_addr, &disp);
-    ssd1306_init_tty(&disp, &tty, font_8x5);
+    ssd1306_init_tty(&disp, &tty, get_font());
 
     ssd1306_set_status(&disp, "SCANNING DRIVE");
     printf("Scanning drive\r\n");
     int k = prep_sd_card();
     printf("Done scanning drive\r\n");
     ssd1306_set_status(&disp, "SCAN COMPLETE");
+
+    load_config_from_sd();
+    save_config_to_sd();
+
+        /* --- UART setup ------------------------------------------------------ */
+    uart_init(PAL_UART, user_config.baud);
+    gpio_set_function(PAL_UART_TX_GPIO, GPIO_FUNC_UART);
+    gpio_set_function(PAL_UART_RX_GPIO, GPIO_FUNC_UART);
+
 
     ssd1306_set_status(&disp, "SCANNING RAM");
     size_t mem_size1 = get_largest_alloc_block_binary2(1, 1024 * 1024);
