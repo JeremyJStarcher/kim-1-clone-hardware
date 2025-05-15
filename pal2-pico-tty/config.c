@@ -14,7 +14,7 @@
 pal_config_t system_config = {
     .usb_connected = false,
     .oled_address = 0x3C,
-    .tty_mode = true,
+    .tty_mode = false,
     .soft_version = "1.0.0"};
 
 user_config_t user_config = {

@@ -5,6 +5,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 
+#include "config.h"
 #include "proj_hw.h"
 
 #define input_gpio TTY_SWITCH1_INPUT
@@ -15,7 +16,6 @@ static const int WINDOW_US = (100 * 1000); // 100 ms
 static PIO pio;
 static int sm;
 
-static bool is_tty_modez = false;
 static void init_switch_mirror(PIO pio, uint sm)
 {
     uint offset = pio_add_program(pio, &tty_switch_passthrough_program);
@@ -74,7 +74,7 @@ static void enable_tty_mode2()
 
 static void shutdown_switch_mirror(PIO pio, uint sm)
 {
-    is_tty_modez = false;
+    system_config.tty_mode = false;
 
     // Disable the state machine
     pio_sm_set_enabled(pio, sm, false);
@@ -207,10 +207,6 @@ void enable_tty_mode()
     }
 
     init_switch_mirror(pio, (uint)sm);
-    is_tty_modez = true;
+    system_config.tty_mode = true;
 }
 
-bool is_tty_mode()
-{
-    return is_tty_modez;
-}

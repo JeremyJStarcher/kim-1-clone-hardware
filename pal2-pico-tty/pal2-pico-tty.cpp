@@ -167,7 +167,7 @@ void show_default_text(ssd1306_tty_t *tty)
     ssd1306_tty_cls(tty);
     ssd1306_tty_puts(tty, " TTY MODE\n");
     ssd1306_tty_puts(tty, " USB<->PAL2\n");
-    if (is_tty_mode())
+    if (system_config.tty_mode)
     {
         ssd1306_tty_puts(tty, " TTY MODE\n");
     }
@@ -195,7 +195,7 @@ void main_loop(ssd1306_tty_t *tty)
 
         if ((char)ch_usb == user_config.toggle_char)
         {
-            if (is_tty_mode())
+            if (system_config.tty_mode)
             {
                 printf("TTY MODE DISABLED.\n");
                 disable_tty_mode();
