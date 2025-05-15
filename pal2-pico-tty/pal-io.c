@@ -7,7 +7,16 @@
 
 #include "proj_hw.h"
 
-void init_switch_mirror(PIO pio, uint sm)
+#define input_gpio TTY_SWITCH1_INPUT
+#define output_gpio TTY_SWITCH2_OUTPUT
+
+static const int EDGE_BREAK = 20;
+static const int WINDOW_US = (100 * 1000); // 100 ms
+static PIO pio;
+static int sm;
+
+static bool is_tty_modez = false;
+static void init_switch_mirror(PIO pio, uint sm)
 {
     uint offset = pio_add_program(pio, &tty_switch_passthrough_program);
     pio_sm_config c = tty_switch_passthrough_program_get_default_config(offset);
@@ -15,9 +24,6 @@ void init_switch_mirror(PIO pio, uint sm)
     // Init GPIOs for PIO
     pio_gpio_init(pio, TTY_SWITCH1_INPUT);
     pio_gpio_init(pio, TTY_SWITCH2_OUTPUT);
-
-#define input_gpio TTY_SWITCH1_INPUT
-#define output_gpio TTY_SWITCH2_OUTPUT
 
     // Start with output in Hi-Z (input mode)
     pio_sm_set_consecutive_pindirs(pio, sm, output_gpio, 1, false);
@@ -33,7 +39,7 @@ void init_switch_mirror(PIO pio, uint sm)
     pio_sm_set_enabled(pio, sm, true);
 }
 
-void jjs_init2()
+static void enable_tty_mode2()
 {
     printf("Measuring  pin activity\n");
     gpio_set_dir(TTY_SWITCH1_INPUT, GPIO_IN);
@@ -66,33 +72,10 @@ void jjs_init2()
     printf("%d %d %d %d\n", cnt[0], cnt[1], cnt[2], cnt[3]);
 }
 
-void jjs_init()
+static void shutdown_switch_mirror(PIO pio, uint sm)
 {
+    is_tty_modez = false;
 
-    gpio_init(PAL_RESET_GPIO);
-    gpio_init(TTY_SWITCH1_INPUT);
-    gpio_init(TTY_SWITCH2_OUTPUT);
-
-    gpio_set_dir(TTY_SWITCH1_INPUT, GPIO_IN);
-    gpio_set_dir(TTY_SWITCH2_OUTPUT, GPIO_IN);
-    gpio_put(TTY_SWITCH2_OUTPUT, 0);
-
-
-    PIO pio = pio0;
-    int sm = pio_claim_unused_sm(pio, true);
-    if (sm < 0)
-    {
-        // Should not happen if 'required' is true, but safe check
-        panic("No available state machines!");
-    }
-
-    init_switch_mirror(pio, (uint)sm);
-    printf("State machine init\n");
-
-}
-
-void shutdown_switch_mirror(PIO pio, uint sm)
-{
     // Disable the state machine
     pio_sm_set_enabled(pio, sm, false);
 
@@ -111,4 +94,123 @@ void shutdown_switch_mirror(PIO pio, uint sm)
 
     gpio_deinit(TTY_SWITCH1_INPUT);
     gpio_deinit(TTY_SWITCH2_OUTPUT);
+}
+
+static void reset_pal_inner(ssd1306_tty_t *tty2)
+{
+
+    /* Assert reset (active‑low) for 100 ms */
+    gpio_set_dir(PAL_RESET_GPIO, GPIO_OUT);
+    gpio_put(PAL_RESET_GPIO, 0);
+    sleep_ms(100);
+
+    int edges1 = get_edges(TTY_SWITCH1_INPUT, WINDOW_US);
+    ssd1306_tty_printf(tty2, "Reset Edges: %d\n", edges1);
+    ssd1306_tty_show(tty2);
+
+    // while (edges1 > EDGE_BREAK)
+    // {
+    //     edges1 = get_edges(TTY_SWITCH1_INPUT, WINDOW_US);
+
+    //     ssd1306_tty_cls(tty2);
+    //     ssd1306_tty_puts(tty2, "WAITING FOR RESET\n");
+    //     ssd1306_tty_printf(tty2, "Reset Edges: %d\n", edges1);
+    //     ssd1306_tty_show(tty2);
+    // }
+
+    sleep_ms(100);
+    gpio_set_dir(PAL_RESET_GPIO, GPIO_IN); /* release */
+
+    // while (edges1 < EDGE_BREAK)
+    // {
+    //     edges1 = get_edges(TTY_SWITCH1_INPUT, WINDOW_US);
+    //     int edges2 = get_edges(TTY_SWITCH2_OUTPUT, WINDOW_US);
+
+    //     ssd1306_tty_cls(tty2);
+    //     ssd1306_tty_puts(tty2, "Waiting for scan\n");
+    //     ssd1306_tty_printf(tty2, "Reset Edges: %d %d\n", edges1, edges2);
+    //     ssd1306_tty_show(tty2);
+    // }
+}
+
+void reset_pal(ssd1306_tty_t *tty)
+{
+    ssd1306_tty_t tty2;
+    ssd1306_t *disp = tty->ssd1306;
+
+    // bool local_mirrored = is_tty_mode();
+    // if (local_mirrored)
+    // {
+
+    //     shutdown_switch_mirror(pio, (uint)sm);
+    // }
+
+    ssd1306_init_tty(tty->ssd1306, &tty2, get_font());
+
+    ssd1306_tty_cls(&tty2);
+    ssd1306_tty_puts(&tty2, "PAL RESET\n");
+    ssd1306_tty_show(&tty2);
+
+    reset_pal_inner(&tty2);
+
+    // if (local_mirrored)
+    // {
+    //     init_switch_mirror(pio, (uint)sm);
+    // }
+
+    ssd1306_tty_show(tty);
+}
+
+int get_edges(int pin, int window_us)
+{
+    uint32_t start = time_us_32(); // µs-resolution free-running timer
+    bool last = gpio_get(pin);
+    uint32_t edges = 0;
+
+    while ((time_us_32() - start) < window_us)
+    {
+        bool now = gpio_get(pin);
+        if (now != last)
+        { // any change = one edge
+            edges++;
+            last = now;
+        }
+        /* Nothing else allowed here → pure busy-wait */
+    }
+    return edges;
+}
+
+void disable_tty_mode()
+{
+    shutdown_switch_mirror(pio, (uint)sm);
+}
+
+void enable_tty_mode()
+{
+
+    gpio_init(PAL_RESET_GPIO);
+    gpio_init(TTY_SWITCH1_INPUT);
+    gpio_init(TTY_SWITCH2_OUTPUT);
+    gpio_init(TTY_SWITCH1_DUP);
+
+    gpio_set_dir(TTY_SWITCH1_INPUT, GPIO_IN);
+    gpio_set_dir(TTY_SWITCH1_DUP, GPIO_IN);
+    gpio_set_dir(TTY_SWITCH2_OUTPUT, GPIO_IN);
+    gpio_put(TTY_SWITCH2_OUTPUT, 0);
+
+    pio = pio0;
+    sm = pio_claim_unused_sm(pio, true);
+    if (sm < 0)
+    {
+        // Should not happen if 'required' is true, but safe check
+        panic("No available state machines!");
+    }
+
+    init_switch_mirror(pio, (uint)sm);
+    is_tty_modez = true;
+}
+
+bool is_tty_mode()
+{
+    return is_tty_modez;
 }

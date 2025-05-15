@@ -4,10 +4,16 @@
 extern "C"
 {
 #endif
-void init_switch_mirror(PIO pio, uint sm);
-void set_switch_mirror(PIO pio, uint sm, bool enable);
-void jjs_init(void);
-void shutdown_switch_mirror(PIO pio, uint sm);
+
+    #include "ssd1306.h"
+
+    void disable_tty_mode(void);
+    void enable_tty_mode(void);
+    void reset_pal(ssd1306_tty_t *tty);
+    int get_edges(int pin, int window_us);
+    bool is_tty_mode(void);
+
+
 
 #ifdef __cplusplus
 }

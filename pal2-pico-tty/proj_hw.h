@@ -36,7 +36,9 @@ extern "C"
 
 #define PAL_RESET_GPIO 16
 #define TTY_SWITCH2_OUTPUT 14
-#define TTY_SWITCH1_INPUT 15 /* reserved – not used in this port           */
+#define TTY_SWITCH1_INPUT 15
+#define TTY_SWITCH1_DUP 18
+
 
 #define PAL_UART uart0
 #define PAL_UART_TX_GPIO 0

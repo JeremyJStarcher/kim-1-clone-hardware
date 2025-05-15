@@ -584,3 +584,8 @@ static void aaa(ssd1306_t *p)
         ssd1306_clear(p);
     }
 }
+
+const uint8_t *get_font(void)
+{
+    return font_8x5;
+}

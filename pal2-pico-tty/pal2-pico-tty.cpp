@@ -18,7 +18,6 @@
 #include "pal-io.h"
 #include "font.h"
 
-static void reset_pal(void);
 static void ssd1306_set_status(ssd1306_t *disp, const char *s);
 void main_loop(ssd1306_tty_t *tty);
 
@@ -135,8 +134,6 @@ int main()
 
     init_buttons();
 
-    jjs_init();
-
     main_loop(&tty);
     while (false)
     {
@@ -151,28 +148,28 @@ static void ssd1306_set_status(ssd1306_t *disp, const char *s)
     ssd1306_show(disp);
 }
 
-static void reset_pal(void)
-{
-    /* Assert reset (active‑low) for 100 ms */
-    gpio_set_dir(PAL_RESET_GPIO, GPIO_OUT);
-    gpio_put(PAL_RESET_GPIO, 0);
-    sleep_ms(100);
-    gpio_set_dir(PAL_RESET_GPIO, GPIO_IN); /* release */
-}
-
 void show_default_text(ssd1306_tty_t *tty)
 {
     ssd1306_tty_cls(tty);
     ssd1306_tty_puts(tty, " TTY MODE\n");
     ssd1306_tty_puts(tty, " USB<->PAL2\n");
-    // ssd1306_tty_puts(tty, " \n");
+    if (is_tty_mode())
+    {
+        ssd1306_tty_puts(tty, " TTY MODE\n");
+    }
+    else
+    {
+        ssd1306_tty_puts(tty, " PAL2 MODE\n");
+    }
+
+    ssd1306_tty_puts(tty, "Type '~' to toggle.\n");
     // ssd1306_tty_puts(tty, " MENU FOR MENU");
     ssd1306_tty_show(tty);
 }
 
 void main_loop(ssd1306_tty_t *tty)
 {
-    reset_pal();
+    reset_pal(tty);
     show_default_text(tty);
 
     while (true)
@@ -181,6 +178,25 @@ void main_loop(ssd1306_tty_t *tty)
 
         /* USB‑>PAL */
         int ch_usb = getchar_timeout_us(0);
+
+        if ((uint8_t)ch_usb == '~')
+        {
+
+            if (is_tty_mode())
+            {
+                printf("TTY MODE DISABLED.\n");
+                disable_tty_mode();
+            }
+            else
+            {
+                printf("TTY MODE ENABLED.\n");
+                enable_tty_mode();
+                reset_pal(tty);
+            }
+            show_default_text(tty);
+            continue;
+        }
+
         if (ch_usb != PICO_ERROR_TIMEOUT)
         {
             uart_putc_raw(PAL_UART, (uint8_t)ch_usb);
