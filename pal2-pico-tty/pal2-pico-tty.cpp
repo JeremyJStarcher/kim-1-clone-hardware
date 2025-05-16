@@ -177,7 +177,16 @@ void show_default_text(ssd1306_tty_t *tty)
     }
 
     ssd1306_tty_printf(tty, "Type '%c' to toggle.\n", user_config.toggle_char);
-    // ssd1306_tty_puts(tty, " MENU FOR MENU");
+
+    if (system_config.file_status == FILE_STATUS_GOOD)
+    {
+        ssd1306_tty_puts(tty, "\n UPLOAD SUCCESSFUL\n");
+    }
+    if (system_config.file_status == FILE_STATUS_ERROR)
+    {
+        ssd1306_tty_puts(tty, "\n UPLOAD ERROR\n");
+    }
+
     ssd1306_tty_show(tty);
 }
 
@@ -198,13 +207,12 @@ void main_loop(ssd1306_tty_t *tty)
             if (system_config.tty_mode)
             {
                 printf("TTY MODE DISABLED.\n");
-                disable_tty_mode();
+                disable_tty_mode(tty);
             }
             else
             {
                 printf("TTY MODE ENABLED.\n");
-                enable_tty_mode();
-                reset_pal(tty);
+                enable_tty_mode(tty);
             }
             show_default_text(tty);
             continue;

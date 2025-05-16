@@ -7,6 +7,8 @@
 
 #include "config.h"
 #include "proj_hw.h"
+#include "send-to-pal.h"
+#include "kim-reply-parser.h"
 
 #define input_gpio TTY_SWITCH1_INPUT
 #define output_gpio TTY_SWITCH2_OUTPUT
@@ -179,14 +181,19 @@ int get_edges(int pin, int window_us)
     return edges;
 }
 
-void disable_tty_mode()
+void disable_tty_mode(ssd1306_tty_t *tty)
 {
     shutdown_switch_mirror(pio, (uint)sm);
 }
 
-void enable_tty_mode()
+void enable_tty_mode(ssd1306_tty_t *tty)
 {
-    disable_tty_mode();
+
+    ssd1306_tty_cls(tty);
+    ssd1306_tty_puts(tty, "WAITING FOR KIM\nPROMPT\n");
+    ssd1306_tty_show(tty);
+
+    disable_tty_mode(tty);
 
     gpio_init(PAL_RESET_GPIO);
     gpio_init(TTY_SWITCH1_INPUT);
@@ -208,5 +215,23 @@ void enable_tty_mode()
 
     init_switch_mirror(pio, (uint)sm);
     system_config.tty_mode = true;
-}
 
+    reset_pal(tty);
+    static const char rubout12[] = "\x7F\x7F\x7F\x7F\x7F\x7F\x7F\x7F\x7F\x7F\x7F\x7F";
+
+    /* Spam the KIM with CRs until it responds with a prompt. */
+    kim_reply_parser_init(&kim_reply_parser);
+    while (true)
+    {
+        sleep_ms(10);
+        printf("Sending rubout\n");
+        send_line_to_pal("\x7F");
+
+        if (kim_reply_parser.prompt_seen)
+        {
+            break;
+        }
+    }
+
+    ssd1306_tty_show(tty);
+}

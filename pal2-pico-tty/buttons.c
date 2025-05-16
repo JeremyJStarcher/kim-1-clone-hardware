@@ -12,11 +12,8 @@
 #include "debug.h"
 #include "pal-io.h"
 #include "config.h"
-
-#define ESC "\x1b[" /* or "\033["                    */
-#define RED ESC "31m"
-#define YELLOW ESC "33m"
-#define RESET ESC "0m"
+#include "kim-reply-parser.h"
+#include "send-to-pal.h"
 
 static const int LINE_BUF_LEN = 255;
 
@@ -72,6 +69,8 @@ static void oled_progress(ssd1306_tty_t *tty,
     uint32_t filled = (pct * BAR_WIDTH_CHARS) / 100; /* 0–BAR_WIDTH */
 
     static char line[10];
+
+    ssd1306_clear(tty->ssd1306);
 
     sprintf(line, "%3u%%", (unsigned)pct);
 
@@ -347,57 +346,6 @@ void path_up(char *path)
     }
 }
 
-void send_char_to_pal(char ch)
-{
-
-    uart_putc_raw(PAL_UART, (uint8_t)ch);
-
-    if (ch == '\r' || ch == '\n')
-    {
-        sleep_ms(user_config.line_delay);
-    }
-    else
-    {
-        sleep_ms(user_config.ch_delay);
-    }
-
-    while (!uart_is_readable(PAL_UART))
-    {
-        sleep_ms(1);
-    }
-    int ch_pal = uart_getc(PAL_UART);
-    char s[5] = {0};
-    s[0] = ch_pal;
-    s[1] = 0;
-
-    printf(RED "%s" RESET, s);
-}
-
-void send_line_to_pal(const char *line)
-{
-    size_t n = strlen(line);
-
-    for (size_t i = 0; i <= n; i++)
-    {
-        char ch = line[i];
-        send_char_to_pal(ch);
-    }
-    if (n && line[n - 1] != '\n')
-    {
-        send_char_to_pal('\n');
-    }
-
-    while (uart_is_readable(PAL_UART))
-    {
-        int ch_pal = uart_getc(PAL_UART);
-        char s[5] = {0};
-        s[0] = ch_pal;
-        s[1] = 0;
-
-        printf(YELLOW "%s" RESET, s);
-    }
-}
-
 static file_type_t calculate_file_type(const char *file_name)
 {
     if (ends_with(file_name, ".ptp"))
@@ -411,24 +359,14 @@ static bool force_tty_mode(ssd1306_tty_t *tty, const char *file_name)
 {
     bool current_mode = system_config.tty_mode;
 
-    enable_tty_mode();
-    reset_pal(tty);
+    enable_tty_mode(tty);
 
-    file_type_t file_type = calculate_file_type(file_name);
-    if (file_type == FILE_TYPE_PTP)
-    {
-        // FIXME:
-        for (int i = 0; i < 5; i++)
-        {
-            send_line_to_pal("\r\r\rL\r");
-            sleep_ms(200);
-        }
-    }
     return current_mode;
 }
 
 void send_file_to_pal(ssd1306_tty_t *tty, const char *dir, const char *file_name)
 {
+    kim_reply_parser_init(&kim_reply_parser);
 
     char full_file_name[MAX_PATH_LEN];
     FIL fp;
@@ -455,18 +393,19 @@ void send_file_to_pal(ssd1306_tty_t *tty, const char *dir, const char *file_name
     const DWORD total = f_size(&fp);
     uint32_t last_step = 0; /* last % drawn       */
 
+    bool current_mode = force_tty_mode(tty, file_name);
+
     oled_progress(tty, 0, total, file_name);
 
-    bool current_mode = force_tty_mode(tty, file_name);
+    file_type_t file_type = calculate_file_type(file_name);
+    if (file_type == FILE_TYPE_PTP)
+    {
+        send_line_to_pal("L");
+    }
 
     while (f_gets(line, sizeof line, &fp))
     {
         send_line_to_pal(line);
-        size_t n = strlen(line);
-        if (n && (line[n - 1] != '\r' || line[n - 1] != '\n'))
-        {
-            send_line_to_pal("\r");
-        }
 
         uint32_t sent = f_tell(&fp); /* bytes already read   */
         uint32_t step = (sent * PROGRESS_STEPS) / total;
@@ -479,20 +418,16 @@ void send_file_to_pal(ssd1306_tty_t *tty, const char *dir, const char *file_name
         }
     }
 
-    puts("LOOKING FOR UPLOAD RESPONSE\n");
-    while (uart_is_readable(PAL_UART))
-    {
-        int ch_pal = uart_getc(PAL_UART);
-        putchar_raw('#');
-        putchar_raw(ch_pal);
-    }
+    // This is harmless but covers any case where the file did not end with a CR.
+    send_line_to_pal("\r\n");
 
     oled_progress(tty, total, total, file_name);
+
     f_close(&fp);
 
     if (!current_mode)
     {
-        disable_tty_mode();
+        disable_tty_mode(tty);
     }
 }
 
@@ -552,6 +487,16 @@ int menu_tty_up(ssd1306_tty_t *tty)
         if (!item.is_dir)
         {
             send_file_to_pal(tty, current_dir, item.label);
+
+            if (kim_reply_parser.err_seen)
+            {
+                system_config.file_status = FILE_STATUS_ERROR;
+            }
+            else
+            {
+                system_config.file_status = FILE_STATUS_GOOD;
+            }
+
             menu_tty_up_return = SELECT_RETURN_CLOSE_ALL;
             break;
         }

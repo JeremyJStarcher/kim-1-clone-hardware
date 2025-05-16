@@ -60,6 +60,8 @@ add_executable(
     pal-io.c
     buttons.c
     config.c
+    kim-reply-parser.c
+    send-to-pal.c
 )
 
 pico_set_program_name(pal2-pico-tty "pal2-pico-tty")
