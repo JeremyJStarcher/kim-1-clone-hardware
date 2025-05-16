@@ -8,6 +8,7 @@
 #include "hardware/uart.h"
 #include "pico/binary_info.h"
 #include "malloc.h"
+#include "bt_main.h"
 
 #include "sd-card/sd-card.h"
 #include "proj_hw.h"
@@ -148,6 +149,7 @@ int main()
 
     init_buttons();
 
+    bt_main();
     main_loop(&tty);
     while (false)
     {

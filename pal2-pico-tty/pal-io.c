@@ -188,7 +188,6 @@ void disable_tty_mode(ssd1306_tty_t *tty)
 
 void enable_tty_mode(ssd1306_tty_t *tty)
 {
-
     ssd1306_tty_cls(tty);
     ssd1306_tty_puts(tty, "WAITING FOR KIM\nPROMPT\n");
     ssd1306_tty_show(tty);

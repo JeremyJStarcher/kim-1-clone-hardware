@@ -62,6 +62,8 @@ add_executable(
     config.c
     kim-reply-parser.c
     send-to-pal.c
+    bt-serial/bt_main.c
+    bt-serial/spp_counter.c
 )
 
 pico_set_program_name(pal2-pico-tty "pal2-pico-tty")
@@ -93,6 +95,7 @@ target_include_directories(
     pal2-pico-tty PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     pico-ssd1306
+    bt-serial
 )
 
 # Add any user requested libraries
@@ -105,6 +108,11 @@ target_link_libraries(
     pico_cyw43_arch_none
     hardware_adc
     hardware_uart
+
+    pico_btstack_classic
+    pico_btstack_cyw43
+    pico_multicore          # core-launch, FIFO, locks
+    hardware_sync           # spin_lock_t (optional but handy)
 )
 
 pico_add_extra_outputs(pal2-pico-tty)
