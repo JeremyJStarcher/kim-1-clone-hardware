@@ -10,12 +10,15 @@
 #include "sd-card/sd-card.h"
 #include "proj_hw.h"
 #include "debug.h"
+#include "pal-io.h"
 #include "config.h"
 
 #define ESC "\x1b[" /* or "\033["                    */
 #define RED ESC "31m"
 #define YELLOW ESC "33m"
 #define RESET ESC "0m"
+
+static const int LINE_BUF_LEN = 255;
 
 static const int PROGRESS_STEPS = 100; // granularity: 1%
 static const int BAR_WIDTH_CHARS = 20; // ########··············
@@ -54,6 +57,9 @@ static const uint8_t button_pins[] = {
     PIN_PLAY,
     PIN_FASTFORWARD,
     PIN_RECORD};
+
+static file_type_t calculate_file_type(const char *file_name);
+static bool ends_with(const char *str, const char *suffix);
 
 static void oled_progress(ssd1306_tty_t *tty,
                           uint32_t sent, uint32_t total,
@@ -107,7 +113,6 @@ button_state_t read_buttons_struct(void)
 
     for (size_t i = 0; i < 5; ++i)
     {
-
         /* 1. Sample hardware (active‑low) */
         bool raw = !gpio_get(button_pins[i]);
 
@@ -393,9 +398,37 @@ void send_line_to_pal(const char *line)
     }
 }
 
+static file_type_t calculate_file_type(const char *file_name)
+{
+    if (ends_with(file_name, ".ptp"))
+    {
+        return FILE_TYPE_PTP;
+    }
+    return FILE_TYPE_PLAIN_TEXT;
+}
+
+static bool force_tty_mode(ssd1306_tty_t *tty, const char *file_name)
+{
+    bool current_mode = system_config.tty_mode;
+
+    enable_tty_mode();
+    reset_pal(tty);
+
+    file_type_t file_type = calculate_file_type(file_name);
+    if (file_type == FILE_TYPE_PTP)
+    {
+        // FIXME:
+        for (int i = 0; i < 5; i++)
+        {
+            send_line_to_pal("\r\r\rL\r");
+            sleep_ms(200);
+        }
+    }
+    return current_mode;
+}
+
 void send_file_to_pal(ssd1306_tty_t *tty, const char *dir, const char *file_name)
 {
-#define LINE_BUF_LEN 255
 
     char full_file_name[MAX_PATH_LEN];
     FIL fp;
@@ -424,13 +457,15 @@ void send_file_to_pal(ssd1306_tty_t *tty, const char *dir, const char *file_name
 
     oled_progress(tty, 0, total, file_name);
 
+    bool current_mode = force_tty_mode(tty, file_name);
+
     while (f_gets(line, sizeof line, &fp))
     {
         send_line_to_pal(line);
         size_t n = strlen(line);
-        if (n && line[n - 1] != '\n')
+        if (n && (line[n - 1] != '\r' || line[n - 1] != '\n'))
         {
-            send_char_to_pal('\n');
+            send_line_to_pal("\r");
         }
 
         uint32_t sent = f_tell(&fp); /* bytes already read   */
@@ -454,6 +489,11 @@ void send_file_to_pal(ssd1306_tty_t *tty, const char *dir, const char *file_name
 
     oled_progress(tty, total, total, file_name);
     f_close(&fp);
+
+    if (!current_mode)
+    {
+        disable_tty_mode();
+    }
 }
 
 int menu_tty_up(ssd1306_tty_t *tty)
@@ -612,7 +652,7 @@ void free_menu(dmenu_list_t *menu)
     menu->count = 0;
 }
 
-bool ends_with(const char *str, const char *suffix)
+static bool ends_with(const char *str, const char *suffix)
 {
     if (!str || !suffix) /* defensive programming           */
         return false;

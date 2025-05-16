@@ -98,7 +98,6 @@ static void shutdown_switch_mirror(PIO pio, uint sm)
 
 static void reset_pal_inner(ssd1306_tty_t *tty2)
 {
-
     /* Assert reset (active‑low) for 100 ms */
     gpio_set_dir(PAL_RESET_GPIO, GPIO_OUT);
     gpio_put(PAL_RESET_GPIO, 0);
@@ -187,6 +186,7 @@ void disable_tty_mode()
 
 void enable_tty_mode()
 {
+    disable_tty_mode();
 
     gpio_init(PAL_RESET_GPIO);
     gpio_init(TTY_SWITCH1_INPUT);

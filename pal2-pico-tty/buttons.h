@@ -6,6 +6,14 @@ extern "C"
 
 #include "ssd1306.h"
 
+typedef enum {
+    FILE_TYPE_PTP,        /* Proprietary Transfer Protocol           */
+    FILE_TYPE_PLAIN_TEXT, /* Human-readable text                     */
+
+    FILE_TYPE_COUNT       /* Always keep this as the last item.      */
+} file_type_t;
+
+
   const uint8_t PIN_MENU = 12;
   const uint8_t PIN_REWIND = 6;
   const uint8_t PIN_PLAY = 7;
