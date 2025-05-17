@@ -9,6 +9,7 @@
 #include "pico/binary_info.h"
 #include "malloc.h"
 #include "bt_main.h"
+#include "pico/multicore.h"
 
 #include "sd-card/sd-card.h"
 #include "proj_hw.h"
@@ -49,19 +50,14 @@ bool wait_for_usb_connection(uint timeout_ms)
     return true; // USB connected
 }
 
-int main()
+void core1_main(void)
 {
-    stdio_init_all();
 
-    bool connected = wait_for_usb_connection(1000);
+    //    bool connected = wait_for_usb_connection(1000);
 
-    configure_hardware();
+    printf("SERIAL PORT ENABLED\r\n");
 
-    // // Initialise the Wi-Fi chip
-    // if (cyw43_arch_init()) {
-    //     printf("Wi-Fi init failed\n");
-    //     return -1;
-    // }
+    // jjz -> configure_hardware();
 
     // SPI initialisation. This example will use SPI at 1MHz.
     spi_init(SPI_PORT, 1000 * 1000);
@@ -80,14 +76,7 @@ int main()
 
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
-    gpio_pull_up(I2C_SDA);
-    gpio_pull_up(I2C_SCL);
-    // For more examples of I2C use see https://github.com/raspberrypi/pico-examples/tree/master/i2c
-
-    // Example to turn on the Pico W LED
-    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
-
-    // Set up our UART
+    gpio_pull_up(I2C_SDA); // Set up our UART
     uart_init(PAL_UART, BAUD_RATE);
     // Set the TX and RX pins by using the function select on the GPIO
     // Set datasheet for more information on function select
@@ -149,8 +138,30 @@ int main()
 
     init_buttons();
 
-    bt_main();
+    gpio_pull_up(I2C_SCL);
+    // For more examples of I2C use see https://github.com/raspberrypi/pico-examples/tree/master/i2c
+
     main_loop(&tty);
+}
+
+int main()
+{
+    stdio_init_all();
+
+    bool connected = wait_for_usb_connection(1000);
+
+    multicore_launch_core1(core1_main); // 1️⃣ start core-1 and its IO
+    // Initialise the Wi-Fi chip
+    if (cyw43_arch_init())
+    {
+        printf("cyw43_arch_init() failed.\n");
+        return -1;
+    }
+
+    // Example to turn on the Pico W LED
+    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
+
+    bt_main();
     while (false)
     {
         tight_loop_contents();
