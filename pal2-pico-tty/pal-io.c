@@ -6,6 +6,7 @@
 #include "stdlib.h"
 #include <string.h>
 
+#include "btstack.h"
 #include "config.h"
 #include "proj_hw.h"
 #include "kim-reply-parser.h"
@@ -295,7 +296,8 @@ void upload_line_to_pal(const char *line)
 int user_getchar()
 {
     int ch = getchar_timeout_us(0);
-    if (ch > -1) {
+    if (ch > -1)
+    {
         return ch;
     }
 
@@ -308,7 +310,28 @@ int user_getchar()
     return -1;
 }
 
-void send_char_to_pal(char ch)
+int pal_getchar()
+{
+    if (uart_is_readable(PAL_UART))
+    {
+        int ch_pal = uart_getc(PAL_UART);
+        return ch_pal;
+    }
+    return -1;
+}
+
+void pal_putc(char ch)
 {
     uart_putc_raw(PAL_UART, (uint8_t)ch);
+}
+
+void user_putc(char ch_pal)
+{
+    bool was_empty = (ring_count(&tx_ring) == 0);
+    ring_push(&tx_ring, (char)ch_pal);
+    if (was_empty)
+    {
+        rfcomm_request_can_send_now_event(system_config.rfcomm_channel_id);
+    }
+    putchar_raw(ch_pal);
 }

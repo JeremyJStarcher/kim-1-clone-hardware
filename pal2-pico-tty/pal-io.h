@@ -79,9 +79,8 @@ extern "C"
 
     void upload_line_to_pal(const char *line);
 
-
     /**
-     * @brief Send a single character tot he PAL system.
+     * @brief Send a single character to the PAL system.
      *
      * This function is meant for standard user input and does not
      * automatically add delays or do any other processing.
@@ -90,8 +89,28 @@ extern "C"
      *
      * @note This function *is* intended to be used for user-generated input.
      */
-    void send_char_to_pal(char ch);
+    void pal_putc(char ch);
 
+    /* @brief Retrieve a character from the PAL.
+     *
+     * Typically called by polling a UART or keyboard interface.
+     *
+     * @return The received character, or -1 if no character is available.
+     */
+
+    int pal_getchar();
+
+    /**
+     * @brief Send a single character to the PAL system.
+     *
+     * This function is meant for standard user input and does not
+     * automatically add delays or do any other processing.
+     *
+     * @param ch Character to send.
+     *
+     * @note This function *is* intended for general use.
+     */
+    void user_putc(char ch);
 
 #ifdef __cplusplus
 }

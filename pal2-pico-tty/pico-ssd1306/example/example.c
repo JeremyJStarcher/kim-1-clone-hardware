@@ -14,7 +14,7 @@
 const uint8_t num_chars_per_disp[]={7,7,7,5};
 const uint8_t *fonts[4]= {acme_font, bubblesstandard_font, crackers_font, BMSPA_font};
 
- 
+
 #define I2C_PORT            i2c0
 #define I2C_SDA_GPIO        20
 #define I2C_SCL_GPIO        21

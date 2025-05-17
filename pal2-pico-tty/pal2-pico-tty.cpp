@@ -11,8 +11,6 @@
 #include "bt_main.h"
 #include "pico/multicore.h"
 
-#include "btstack.h"
-
 
 #include "sd-card/sd-card.h"
 #include "proj_hw.h"
@@ -241,21 +239,15 @@ void main_loop(ssd1306_tty_t *tty)
 
         if (ch_user > -1)
         {
-            send_char_to_pal((uint8_t)ch_user);
+            pal_putc((uint8_t)ch_user);
             idle = false;
         }
 
         /* PAL‑>USB */
-        if (uart_is_readable(PAL_UART))
+        int ch_pal = pal_getchar();
+        if (ch_pal > -1)
         {
-            int ch_pal = uart_getc(PAL_UART);
-            bool was_empty = (ring_count(&tx_ring) == 0);
-            ring_push(&tx_ring, (char)ch_pal);
-            if (was_empty)
-            {
-                rfcomm_request_can_send_now_event(system_config.rfcomm_channel_id);
-            }
-            putchar_raw(ch_pal);
+            user_putc(ch_pal);
             idle = false;
         }
 
