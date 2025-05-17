@@ -199,11 +199,20 @@ static inline char swap_case_char(char c)
     return c;
 }
 
-static void send_from_ring(uint16_t cid, ring_t *rb)
+static void add_to_ring(ring_t *rx_ring, char *line, size_t len)
+{
+    for (size_t i = 0; i < len; ++i)
+    {
+        char ch = line[i];
+        ring_push(rx_ring, ch);
+    }
+}
+
+static void send_from_ring(uint16_t cid, ring_t *tx_ring)
 {
     while (rfcomm_can_send_packet_now(cid))
     {
-        size_t n = ring_count(rb);
+        size_t n = ring_count(tx_ring);
         if (!n)
         {
             break;
@@ -214,7 +223,7 @@ static void send_from_ring(uint16_t cid, ring_t *rb)
         for (size_t i = 0; i < len; ++i)
         {
             char out;
-            ring_pop(rb, &out);
+            ring_pop(tx_ring, &out);
             echo_buf[i] = out;
             echo_buf[i + 1] = 0;
         }
@@ -321,7 +330,14 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             }
             printf("'\n");
             break;
-#else
+#endif
+        add_to_ring(&rx_ring, packet, size);
+
+        /* ask BTstack to give us a CAN-SEND-NOW when ready          */
+        rfcomm_request_can_send_now_event(rfcomm_channel_id);
+        break;
+
+#if 0
         /* copy & convert to upper-case, clamp to buffer size        */
         echo_len = (size > ECHO_BUF_SIZE) ? ECHO_BUF_SIZE : size;
         for (uint16_t i = 0; i < echo_len; i++)

@@ -295,21 +295,20 @@ void upload_line_to_pal(const char *line)
 int user_getchar()
 {
     int ch = getchar_timeout_us(0);
-    if (ch == PICO_ERROR_TIMEOUT)
-    {
-        return -1;
+    if (ch > -1) {
+        return ch;
     }
-    return ch;
+
+    if (ring_count(&rx_ring) > 0)
+    {
+        char ch;
+        ring_pop(&rx_ring, &ch);
+        return ch;
+    }
+    return -1;
 }
 
-void send_zchar_to_pal(char ch)
+void send_char_to_pal(char ch)
 {
-    if (system_config.tty_mode)
-    {
-        pio_sm_put_blocking(pio, sm, ch);
-    }
-    else
-    {
-        putchar(ch);
-    }
+    uart_putc_raw(PAL_UART, (uint8_t)ch);
 }

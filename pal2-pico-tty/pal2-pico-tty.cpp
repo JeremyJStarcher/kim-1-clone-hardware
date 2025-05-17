@@ -241,7 +241,7 @@ void main_loop(ssd1306_tty_t *tty)
 
         if (ch_user > -1)
         {
-            uart_putc_raw(PAL_UART, (uint8_t)ch_user);
+            send_char_to_pal((uint8_t)ch_user);
             idle = false;
         }
 
