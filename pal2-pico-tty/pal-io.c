@@ -4,11 +4,16 @@
 #include "tty_switch_passthrough.pio.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include <string.h>
 
 #include "config.h"
 #include "proj_hw.h"
-#include "send-to-pal.h"
 #include "kim-reply-parser.h"
+
+#define ESC "\x1b[" /* or "\033["                    */
+#define RED ESC "31m"
+#define YELLOW ESC "33m"
+#define RESET ESC "0m"
 
 #define input_gpio TTY_SWITCH1_INPUT
 #define output_gpio TTY_SWITCH2_OUTPUT
@@ -224,7 +229,7 @@ void enable_tty_mode(ssd1306_tty_t *tty)
     {
         sleep_ms(10);
         printf("Sending rubout\n");
-        send_line_to_pal("\x7F");
+        upload_line_to_pal("\x7F");
 
         if (kim_reply_parser.prompt_seen)
         {
@@ -233,4 +238,78 @@ void enable_tty_mode(ssd1306_tty_t *tty)
     }
 
     ssd1306_tty_show(tty);
+}
+
+void upload_char_to_pal(char ch)
+{
+    uart_putc_raw(PAL_UART, (uint8_t)ch);
+
+    if (ch == '\r')
+    {
+        sleep_ms(user_config.line_delay);
+    }
+    else
+    {
+        sleep_ms(user_config.ch_delay);
+    }
+
+    while (!uart_is_readable(PAL_UART))
+    {
+        sleep_ms(1);
+    }
+    int ch_pal = uart_getc(PAL_UART);
+
+    printf(RED "%c" RESET, (char)ch_pal);
+}
+
+void upload_line_to_pal(const char *line)
+{
+    size_t n = strlen(line);
+    bool cr_found;
+
+    for (size_t i = 0; i <= n; i++)
+    {
+        char ch = line[i];
+        upload_char_to_pal(ch);
+        if (ch == '\r')
+        {
+            cr_found = true;
+        }
+    }
+
+    if (!cr_found)
+    {
+        upload_char_to_pal('\r');
+        upload_char_to_pal('\n');
+    }
+
+    while (uart_is_readable(PAL_UART))
+    {
+        int ch_pal = uart_getc(PAL_UART);
+        char ch = (char)ch_pal;
+        printf(YELLOW "%c" RESET, ch);
+        kim_reply_parser_feed(&kim_reply_parser, ch);
+    }
+}
+
+int user_getchar()
+{
+    int ch = getchar_timeout_us(0);
+    if (ch == PICO_ERROR_TIMEOUT)
+    {
+        return -1;
+    }
+    return ch;
+}
+
+void send_zchar_to_pal(char ch)
+{
+    if (system_config.tty_mode)
+    {
+        pio_sm_put_blocking(pio, sm, ch);
+    }
+    else
+    {
+        putchar(ch);
+    }
 }

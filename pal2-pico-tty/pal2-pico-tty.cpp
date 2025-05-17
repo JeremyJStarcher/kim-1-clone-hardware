@@ -221,9 +221,9 @@ void main_loop(ssd1306_tty_t *tty)
         bool idle = true;
 
         /* USB‑>PAL */
-        int ch_usb = getchar_timeout_us(0);
+        int ch_user = user_getchar();
 
-        if ((char)ch_usb == user_config.toggle_char)
+        if ((char)ch_user == user_config.toggle_char)
         {
             if (system_config.tty_mode)
             {
@@ -239,9 +239,9 @@ void main_loop(ssd1306_tty_t *tty)
             continue;
         }
 
-        if (ch_usb != PICO_ERROR_TIMEOUT)
+        if (ch_user > -1)
         {
-            uart_putc_raw(PAL_UART, (uint8_t)ch_usb);
+            uart_putc_raw(PAL_UART, (uint8_t)ch_user);
             idle = false;
         }
 

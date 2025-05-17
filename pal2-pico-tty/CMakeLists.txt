@@ -61,7 +61,6 @@ add_executable(
     buttons.c
     config.c
     kim-reply-parser.c
-    send-to-pal.c
     bt-serial/bt_main.c
     bt-serial/spp_counter.c
 )

@@ -13,7 +13,6 @@
 #include "pal-io.h"
 #include "config.h"
 #include "kim-reply-parser.h"
-#include "send-to-pal.h"
 
 static const int LINE_BUF_LEN = 255;
 
@@ -400,12 +399,12 @@ void send_file_to_pal(ssd1306_tty_t *tty, const char *dir, const char *file_name
     file_type_t file_type = calculate_file_type(file_name);
     if (file_type == FILE_TYPE_PTP)
     {
-        send_line_to_pal("L");
+        upload_line_to_pal("L");
     }
 
     while (f_gets(line, sizeof line, &fp))
     {
-        send_line_to_pal(line);
+        upload_line_to_pal(line);
 
         uint32_t sent = f_tell(&fp); /* bytes already read   */
         uint32_t step = (sent * PROGRESS_STEPS) / total;
@@ -419,7 +418,7 @@ void send_file_to_pal(ssd1306_tty_t *tty, const char *dir, const char *file_name
     }
 
     // This is harmless but covers any case where the file did not end with a CR.
-    send_line_to_pal("\r\n");
+    upload_line_to_pal("\r\n");
 
     oled_progress(tty, total, total, file_name);
 
