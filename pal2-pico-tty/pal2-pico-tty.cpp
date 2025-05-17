@@ -11,6 +11,9 @@
 #include "bt_main.h"
 #include "pico/multicore.h"
 
+#include "btstack.h"
+
+
 #include "sd-card/sd-card.h"
 #include "proj_hw.h"
 #include "buttons.h"
@@ -18,6 +21,8 @@
 #include "ssd1306.h"
 #include "proj_hw.h"
 #include "pal-io.h"
+
+#include "ring.h"
 #include "config.h"
 
 static void ssd1306_set_status(ssd1306_t *disp, const char *s);
@@ -148,6 +153,9 @@ int main()
 {
     stdio_init_all();
 
+    ring_init(&tx_ring);
+    ring_init(&rx_ring);
+
     bool connected = wait_for_usb_connection(1000);
 
     multicore_launch_core1(core1_main); // 1️⃣ start core-1 and its IO
@@ -241,6 +249,12 @@ void main_loop(ssd1306_tty_t *tty)
         if (uart_is_readable(PAL_UART))
         {
             int ch_pal = uart_getc(PAL_UART);
+            bool was_empty = (ring_count(&tx_ring) == 0);
+            ring_push(&tx_ring, (char)ch_pal);
+            if (was_empty)
+            {
+                rfcomm_request_can_send_now_event(system_config.rfcomm_channel_id);
+            }
             putchar_raw(ch_pal);
             idle = false;
         }

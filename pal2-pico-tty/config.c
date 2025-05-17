@@ -11,12 +11,16 @@
 
 #include "config.h"
 
+ring_t tx_ring;
+ring_t rx_ring;
+
 pal_config_t system_config = {
     .usb_connected = false,
     .oled_address = 0x3C,
     .tty_mode = false,
     .file_status = FILE_STATUS_NONE,
-    .soft_version = "1.0.0"};
+    .soft_version = "1.0.0",
+    .rfcomm_channel_id = -1};
 
 user_config_t user_config = {
     .baud = 9600,

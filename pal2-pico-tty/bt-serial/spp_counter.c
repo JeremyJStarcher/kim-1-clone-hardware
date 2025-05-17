@@ -37,7 +37,9 @@
 
 #define BTSTACK_FILE__ "spp_counter.c"
 
-#include <stddef.h>   /* defines size_t */
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+#include <stddef.h> /* defines size_t */
 
 #define ECHO_BUF_SIZE 256
 static char echo_buf[ECHO_BUF_SIZE];
@@ -62,6 +64,9 @@ static size_t echo_len = 0;
 #include <string.h>
 
 #include "btstack.h"
+
+#include "config.h"
+#include "ring.h"
 
 #define RFCOMM_SERVER_CHANNEL 1
 #define HEARTBEAT_PERIOD_MS 1000
@@ -186,13 +191,36 @@ static void one_shot_timer_setup(void)
 
  */
 
-
 static inline char swap_case_char(char c)
 {
     /* ASCII – bit 5 distinguishes upper (0) from lower (1) */
     if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
-        c ^= 0x20;                 /* flip bit 5 */
+        c ^= 0x20; /* flip bit 5 */
     return c;
+}
+
+static void send_from_ring(uint16_t cid, ring_t *rb)
+{
+    while (rfcomm_can_send_packet_now(cid))
+    {
+        size_t n = ring_count(rb);
+        if (!n)
+        {
+            break;
+        }
+
+        size_t len = MIN(n, ECHO_BUF_SIZE - 1);
+
+        for (size_t i = 0; i < len; ++i)
+        {
+            char out;
+            ring_pop(rb, &out);
+            echo_buf[i] = out;
+            echo_buf[i + 1] = 0;
+        }
+
+        rfcomm_send(cid, echo_buf, n); /* one call, many bytes   */
+    }
 }
 
 /* LISTING_START(SppServerPacketHandler): SPP Server - Heartbeat Counter over RFCOMM */
@@ -229,6 +257,8 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             rfcomm_event_incoming_connection_get_bd_addr(packet, event_addr);
             rfcomm_channel_nr = rfcomm_event_incoming_connection_get_server_channel(packet);
             rfcomm_channel_id = rfcomm_event_incoming_connection_get_rfcomm_cid(packet);
+            system_config.rfcomm_channel_id = rfcomm_channel_id;
+
             printf("RFCOMM channel %u requested for %s\n", rfcomm_channel_nr, bd_addr_to_str(event_addr));
             rfcomm_accept_connection(rfcomm_channel_id);
             break;
@@ -242,6 +272,9 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             {
                 rfcomm_channel_id = rfcomm_event_channel_opened_get_rfcomm_cid(packet);
                 mtu = rfcomm_event_channel_opened_get_max_frame_size(packet);
+
+                // Starts sending right away without waiting for a keystroke from the receiver.
+                rfcomm_request_can_send_now_event(rfcomm_channel_id); // kick-start TX
                 printf("RFCOMM channel open succeeded. New RFCOMM Channel ID %u, max frame size %u\n", rfcomm_channel_id, mtu);
             }
             break;
@@ -249,7 +282,15 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
 #if 0
             rfcomm_send(rfcomm_channel_id, (uint8_t *)lineBuffer, (uint16_t)strlen(lineBuffer));
             break;
-#else
+#endif
+            send_from_ring(rfcomm_channel_id, &tx_ring);
+            {
+                if (ring_count(&tx_ring)) // still data?
+                    rfcomm_request_can_send_now_event(rfcomm_channel_id);
+            }
+            break;
+
+#if 0
 
             if (echo_len)
             {
@@ -286,7 +327,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
         for (uint16_t i = 0; i < echo_len; i++)
         {
             char ch = packet[i];
-          //  echo_buf[i] = (ch >= 'a' && ch <= 'z') ? (ch - 'a' + 'A') : ch;
+            //  echo_buf[i] = (ch >= 'a' && ch <= 'z') ? (ch - 'a' + 'A') : ch;
             echo_buf[i] = swap_case_char(ch);
         }
         /* ask BTstack to give us a CAN-SEND-NOW when ready          */

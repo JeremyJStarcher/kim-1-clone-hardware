@@ -43,7 +43,8 @@
         "pal-io.h": "c",
         "font.h": "c",
         "ssd1306.h": "c",
-        "kim-reply-parser.h": "c"
+        "kim-reply-parser.h": "c",
+        "config.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

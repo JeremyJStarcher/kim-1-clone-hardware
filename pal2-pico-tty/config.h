@@ -7,6 +7,7 @@ extern "C"
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "ring.h"
 
     typedef enum
     {
@@ -22,6 +23,7 @@ extern "C"
         bool tty_mode;
         const char *soft_version;
         file_status_t file_status;
+        uint16_t rfcomm_channel_id;
     } pal_config_t;
 
     extern pal_config_t system_config;
@@ -37,6 +39,9 @@ extern "C"
     } user_config_t;
 
     extern user_config_t user_config;
+
+    extern ring_t tx_ring; /* producer: core-1, consumer: core-0 */
+    extern ring_t rx_ring; /* producer: core-0, consumer: core-1 */
 
     bool load_config_from_sd(void);
     bool save_config_to_sd(void);
