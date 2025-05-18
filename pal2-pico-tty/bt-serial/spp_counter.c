@@ -199,7 +199,7 @@ static inline char swap_case_char(char c)
     return c;
 }
 
-static void add_to_ring(ring_t *rx_ring, char *line, size_t len)
+static void add_to_ring(volatile ring_t *rx_ring, char *line, size_t len)
 {
     for (size_t i = 0; i < len; ++i)
     {
@@ -208,7 +208,7 @@ static void add_to_ring(ring_t *rx_ring, char *line, size_t len)
     }
 }
 
-static void send_from_ring(uint16_t cid, ring_t *tx)
+static void send_from_ring(uint16_t cid, volatile ring_t *tx)
 {
     if (!rfcomm_can_send_packet_now(cid))
         return;
@@ -226,16 +226,14 @@ static void send_from_ring(uint16_t cid, ring_t *tx)
         ring_pop(tx, &echo_buf[i]);
     }
 
-   // printf("Streaming %zu bytes\n", len);
-
     rfcomm_send(cid, (uint8_t *)echo_buf, len);
 
-
-    // schedule next send if still data left
-    if (ring_count(tx))
-    {
-        rfcomm_request_can_send_now_event(cid);
-    }
+    /* Disabled -- the interrupt takes care of this */
+    // // schedule next send if still data left
+    // if (ring_count(tx))
+    // {
+    //     rfcomm_request_can_send_now_event(cid);
+    // }
 }
 
 /* LISTING_START(SppServerPacketHandler): SPP Server - Heartbeat Counter over RFCOMM */
@@ -253,9 +251,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
     {
     case HCI_EVENT_PACKET:
         switch (hci_event_packet_get_type(packet))
-
         {
-
         case HCI_STATE_WORKING:
             one_shot_timer_setup();
             break;
