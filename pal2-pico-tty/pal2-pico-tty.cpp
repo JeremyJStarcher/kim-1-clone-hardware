@@ -225,12 +225,12 @@ void main_loop(ssd1306_tty_t *tty)
         {
             if (system_config.tty_mode)
             {
-                printf("TTY MODE DISABLED.\n");
+                u_printf("TTY MODE DISABLED.\n");
                 disable_tty_mode(tty);
             }
             else
             {
-                printf("TTY MODE ENABLED.\n");
+                u_printf("TTY MODE ENABLED.\n");
                 enable_tty_mode(tty);
             }
             show_default_text(tty);
@@ -247,7 +247,7 @@ void main_loop(ssd1306_tty_t *tty)
         int ch_pal = pal_getchar();
         if (ch_pal > -1)
         {
-            user_putc(ch_pal);
+            u_putc(ch_pal);
             idle = false;
         }
 

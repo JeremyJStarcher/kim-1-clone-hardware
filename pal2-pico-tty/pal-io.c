@@ -325,7 +325,7 @@ void pal_putc(char ch)
     uart_putc_raw(PAL_UART, (uint8_t)ch);
 }
 
-void user_putc(char ch_pal)
+void u_putc(char ch_pal)
 {
     bool was_empty = (ring_count(&tx_ring) == 0);
     ring_push(&tx_ring, (char)ch_pal);
@@ -334,4 +334,24 @@ void user_putc(char ch_pal)
         rfcomm_request_can_send_now_event(system_config.rfcomm_channel_id);
     }
     putchar_raw(ch_pal);
+}
+
+void u_puts(const char *s)
+{
+    while (*s)
+    {
+        u_putc(*s++);
+    }
+}
+
+void u_printf(const char *fmt, ...)
+{
+    static char buf[256]; /* adjust to a sensible upper bound */
+    va_list ap;
+
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof buf, fmt, ap);
+    va_end(ap);
+
+    u_puts(buf);
 }

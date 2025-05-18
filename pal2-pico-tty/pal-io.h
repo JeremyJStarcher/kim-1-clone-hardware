@@ -110,7 +110,17 @@ extern "C"
      *
      * @note This function *is* intended for general use.
      */
-    void user_putc(char ch);
+    void u_putc(char ch);
+
+    /**
+     * @brief printf to the user devices
+     *
+     *
+     * @param fmt The format string
+     *
+     */
+
+    void u_printf(const char *fmt, ...);
 
 #ifdef __cplusplus
 }
