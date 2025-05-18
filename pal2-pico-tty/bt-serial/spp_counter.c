@@ -41,7 +41,7 @@
 
 #include <stddef.h> /* defines size_t */
 
-#define ECHO_BUF_SIZE 256
+#define ECHO_BUF_SIZE 1000
 static char echo_buf[ECHO_BUF_SIZE];
 static size_t echo_len = 0;
 
@@ -131,13 +131,13 @@ static void heartbeat_handler(struct btstack_timer_source *ts)
 {
     static int counter = 0;
 
-    if (rfcomm_channel_id)
-    {
-        snprintf(lineBuffer, sizeof(lineBuffer), "BTstack counter %04u\n", ++counter);
-        printf("%s", lineBuffer);
+    // if (rfcomm_channel_id)
+    // {
+    //     snprintf(lineBuffer, sizeof(lineBuffer), "BTstack counter %04u\n", ++counter);
+    //     printf("%s", lineBuffer);
 
-        rfcomm_request_can_send_now_event(rfcomm_channel_id);
-    }
+    //     rfcomm_request_can_send_now_event(rfcomm_channel_id);
+    // }
 
     btstack_run_loop_set_timer(ts, HEARTBEAT_PERIOD_MS);
     btstack_run_loop_add_timer(ts);
@@ -208,27 +208,33 @@ static void add_to_ring(ring_t *rx_ring, char *line, size_t len)
     }
 }
 
-static void send_from_ring(uint16_t cid, ring_t *tx_ring)
+static void send_from_ring(uint16_t cid, ring_t *tx)
 {
-    while (rfcomm_can_send_packet_now(cid))
+    if (!rfcomm_can_send_packet_now(cid))
+        return;
+
+    // Why don't we just eat excess that that will be vanishing
+    ring_all_but(tx, 200);
+
+    size_t avail = ring_count(tx);
+    if (!avail)
+        return;
+
+    size_t len = MIN(avail, ECHO_BUF_SIZE - 1);
+    for (size_t i = 0; i < len; i++)
     {
-        size_t n = ring_count(tx_ring);
-        if (!n)
-        {
-            break;
-        }
+        ring_pop(tx, &echo_buf[i]);
+    }
 
-        size_t len = MIN(n, ECHO_BUF_SIZE - 1);
+   // printf("Streaming %zu bytes\n", len);
 
-        for (size_t i = 0; i < len; ++i)
-        {
-            char out;
-            ring_pop(tx_ring, &out);
-            echo_buf[i] = out;
-            echo_buf[i + 1] = 0;
-        }
+    rfcomm_send(cid, (uint8_t *)echo_buf, len);
 
-        rfcomm_send(cid, echo_buf, n); /* one call, many bytes   */
+
+    // schedule next send if still data left
+    if (ring_count(tx))
+    {
+        rfcomm_request_can_send_now_event(cid);
     }
 }
 
@@ -247,7 +253,13 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
     {
     case HCI_EVENT_PACKET:
         switch (hci_event_packet_get_type(packet))
+
         {
+
+        case HCI_STATE_WORKING:
+            one_shot_timer_setup();
+            break;
+
             /* LISTING_RESUME */
         case HCI_EVENT_PIN_CODE_REQUEST:
             // inform about pin code request
@@ -294,10 +306,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             break;
 #endif
             send_from_ring(rfcomm_channel_id, &tx_ring);
-            {
-                if (ring_count(&tx_ring)) // still data?
-                    rfcomm_request_can_send_now_event(rfcomm_channel_id);
-            }
+
             break;
 
 #if 0
@@ -366,7 +375,6 @@ int btstack_main(int argc, const char *argv[])
     (void)argc;
     (void)argv;
 
-    // JJS  one_shot_timer_setup();
     spp_service_setup();
 
     gap_discoverable_control(1);
@@ -375,6 +383,7 @@ int btstack_main(int argc, const char *argv[])
 
     // turn on!
     hci_power_control(HCI_POWER_ON);
+    btstack_run_loop_execute();
 
     return 0;
 }

@@ -373,12 +373,8 @@ void u_putc(char ch_pal)
     }
     if (system_config.rfcomm_channel_id > -1)
     {
-        bool was_empty = (ring_count(&tx_ring) == 0);
         ring_push(&tx_ring, (char)ch_pal);
-        if (was_empty)
-        {
-            rfcomm_request_can_send_now_event(system_config.rfcomm_channel_id);
-        }
+        // rfcomm_request_can_send_now_event handled by the interrupt
     }
 
     last_was_cr = (ch_pal == '\r');
@@ -387,15 +383,6 @@ void u_putc(char ch_pal)
 
 void u_puts(const char *s)
 {
-    // // If sending bluetooth, wait until there is enough space
-    // if (system_config.bt_connected)
-    // {
-    //     do
-    //     {
-    //         sleep_ms(10);
-    //     } while (!ring_is_empty(&tx_ring));
-    // }
-
     while (*s)
     {
         u_putc(*s++);

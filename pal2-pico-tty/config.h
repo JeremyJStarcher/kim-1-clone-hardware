@@ -43,8 +43,8 @@ extern "C"
 
     extern user_config_t user_config;
 
-    extern ring_t tx_ring; /* producer: core-1, consumer: core-0 */
-    extern ring_t rx_ring; /* producer: core-0, consumer: core-1 */
+    extern volatile ring_t tx_ring; /* producer: core-1, consumer: core-0 */
+    extern volatile ring_t rx_ring; /* producer: core-0, consumer: core-1 */
 
     bool load_config_from_sd(void);
     bool save_config_to_sd(void);

@@ -10,6 +10,7 @@
 #include "malloc.h"
 #include "bt_main.h"
 #include "pico/multicore.h"
+#include "btstack.h"
 
 #include "sd-card/sd-card.h"
 #include "proj_hw.h"
@@ -52,8 +53,29 @@ bool wait_for_usb_connection(uint timeout_ms)
     return true; // USB connected
 }
 
+bool repeating_timer_callback(struct repeating_timer *t)
+{
+    // Alright, I had to put the request on a timer to allow bytes
+    // to get batched up in the ring buffer.  Otherwise, it would try
+    // to send ONE CHARACTER per batch at 9600 baud, which bogged down
+    // the system.
+    //
+    
+    if (system_config.bt_connected)
+    {
+        if (!ring_is_empty(&tx_ring))
+        {
+            rfcomm_request_can_send_now_event(system_config.rfcomm_channel_id);
+        }
+    }
+
+    return true; // Keep repeating
+}
+
 void core1_main(void)
 {
+    struct repeating_timer timer;
+    add_repeating_timer_ms(100, repeating_timer_callback, NULL, &timer);
 
     pal_io_init();
 
@@ -97,6 +119,7 @@ void core1_main(void)
 
     printf("Scanning I²C\r\n");
     int i2c_addr = scan_i2c_bus();
+
     if (i2c_addr >= 0)
     {
         printf("First I²C device @ 0x%02X\r\n", i2c_addr);

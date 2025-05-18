@@ -1,11 +1,16 @@
-#include <string.h>
-#include <strings.h>
-#include <stdlib.h>
-#include <ctype.h>
+// config.c
+// Table-driven config loader/saver for Pico FATFS
+
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "./sd-card/pico_fatfs/fatfs/ff.h"
+#include "config.h"
 
 #define BAUD_KEY_NAME "baud"
 #define CH_DELAY_KEY_NAME "ch_delay"
@@ -16,13 +21,17 @@
 #define BS_TO_DEL_KEY_NAME "bs_to_del"
 
 #define CONFIG_FILENAME "config.txt"
-#define MAX_LINE_LEN 128
+
+#ifndef MAX_CONFIG_SIZE
 #define MAX_CONFIG_SIZE 1024
+#endif
 
-#include "config.h"
+#ifndef MAX_LINE_LEN
+#define MAX_LINE_LEN 128
+#endif
 
-ring_t tx_ring;
-ring_t rx_ring;
+volatile ring_t tx_ring;
+volatile ring_t rx_ring;
 
 pal_config_t system_config = {
     .usb_connected = false,
@@ -42,93 +51,113 @@ user_config_t user_config = {
     .force_upper_case = false,
     .bs_to_del = false};
 
-#define CONFIG_FILENAME "config.txt"
-#define MAX_LINE_LEN 128
-
-static char *bool_to_str(bool b)
+// Types of config entries
+typedef enum
 {
-    return b ? "true" : "false";
-}
-static char *uint16_to_str(uint16_t n)
-{
-    static char buf[6]; // 5 digits + NUL
-    snprintf(buf, sizeof(buf), "%u", n);
-    return buf;
-}
+    CT_UINT16,
+    CT_BOOL,
+    CT_CHAR
+} ConfigType;
 
-static bool parse_bool(const char *s)
+// Mapping from key name to storage location
+typedef struct
 {
-    return strcasecmp(s, "true") == 0 || strcmp(s, "1") == 0;
-}
+    const char *key;
+    ConfigType type;
+    void *dest;
+} ConfigEntry;
 
-static uint16_t parse_uint16(const char *s)
-{
-    return (uint16_t)atoi(s);
-}
+static ConfigEntry cfg_map[] = {
+    {BAUD_KEY_NAME, CT_UINT16, &user_config.baud},
+    {CH_DELAY_KEY_NAME, CT_UINT16, &user_config.ch_delay},
+    {LINE_DELAY_KEY_NAME, CT_UINT16, &user_config.line_delay},
+    {USE_HARD_RESET_KEY_NAME, CT_BOOL, &user_config.use_hard_reset},
+    {TOGGLE_CHAR_KEY_NAME, CT_CHAR, &user_config.toggle_char},
+    {FORCE_UPPER_CASE_KEY_NAME, CT_BOOL, &user_config.force_upper_case},
+    {BS_TO_DEL_KEY_NAME, CT_BOOL, &user_config.bs_to_del},
+};
 
-/* Destructively strip leading and trailing ASCII whitespace. */
+static const size_t cfg_map_len = sizeof(cfg_map) / sizeof(cfg_map[0]);
+
+// Trim leading/trailing ASCII whitespace in place
 static void trim(char *str)
 {
-    char *start = str; /* first non-space */
-    char *end;
-
-    /* 1. Skip leading whitespace */
+    char *start = str;
     while (*start && isspace((unsigned char)*start))
-        ++start;
-
-    /* 2. If the string is all spaces, leave a single NUL and return */
+    {
+        start++;
+    }
     if (*start == '\0')
     {
         *str = '\0';
         return;
     }
-
-    /* 3. Locate last non-space character */
-    end = start + strlen(start) - 1;
+    char *end = start + strlen(start) - 1;
     while (end > start && isspace((unsigned char)*end))
-        --end;
-
-    /* 4. Add new terminator just after the last non-space */
-    *(end + 1) = '\0';
-
-    /* 5. Move the trimmed text to the front if we skipped leading spaces */
-    if (start != str)
-        memmove(str, start, end - start + 2); /* +2 to copy the NUL */
-}
-
-char *get_config_by_key(const char *key1, const char *bigbuf1)
-{
-    char buff2[MAX_CONFIG_SIZE];
-    strncpy(buff2, bigbuf1, sizeof(buff2));
-    printf("get_config_by_key: %s\n", key1);
-
-    char *saveptr;
-    char *line = strtok_r((char *)buff2, "\n", &saveptr);
-    while (line)
     {
-        char *eq = strchr(line, '=');
-        if (!eq)
-            continue;
-
-        *eq = 0;
-        char *key = line;
-        char *value = eq + 1;
-        trim(key);
-        trim(value);
-
-        if (strcasecmp(key, key1) == 0)
-        {
-            printf("Found key: %s, value: %s\n", key, value);
-            return value;
-        }
-
-        line = strtok_r(NULL, "\n", &saveptr);
+        end--;
     }
-
-    return NULL;
+    *(end + 1) = '\0';
+    if (start != str)
+    {
+        memmove(str, start, end - start + 2);
+    }
 }
 
-// Load config from a text file
+// Parse a uint16_t from string
+static uint16_t parse_uint16(const char *s)
+{
+    return (uint16_t)atoi(s);
+}
+
+// Parse a boolean from string ("true" or "1" → true)
+static bool parse_bool(const char *s)
+{
+    return (strcasecmp(s, "true") == 0) || (strcmp(s, "1") == 0);
+}
+
+// Append a key = formatted_value\n into buffer safely
+static void append_kv(
+    char *buf,
+    size_t cap,
+    const char *key,
+    const char *fmt,
+    ...)
+{
+    size_t used = strlen(buf);
+    size_t rem = cap > used ? cap - used - 1 : 0;
+    if (rem == 0)
+        return;
+
+    va_list ap;
+    va_start(ap, fmt);
+
+    int n = snprintf(buf + used, rem + 1, "%s = ", key);
+    if (n < 0 || (size_t)n > rem)
+    {
+        va_end(ap);
+        return;
+    }
+    used += (size_t)n;
+    rem = cap > used ? cap - used - 1 : 0;
+    if (rem == 0)
+    {
+        va_end(ap);
+        return;
+    }
+    n = vsnprintf(buf + used, rem + 1, fmt, ap);
+    va_end(ap);
+    if (n < 0 || (size_t)n > rem)
+        return;
+    used += (size_t)n;
+    if (used + 1 < cap)
+    {
+        buf[used++] = '\n';
+        buf[used] = '\0';
+    }
+}
+
+// Load config from SD-card file into user_config
 bool load_config_from_sd(void)
 {
     FIL file;
@@ -137,101 +166,78 @@ bool load_config_from_sd(void)
         return false;
     }
 
-    char big_buf[MAX_CONFIG_SIZE];
-    f_read(&file, big_buf, sizeof(big_buf), NULL);
+    char line[MAX_LINE_LEN];
+    while (f_gets(line, sizeof(line), &file))
+    {
+        trim(line);
+        if (line[0] == '\0' || line[0] == '#')
+            continue;
+
+        char *eq = strchr(line, '=');
+        if (!eq)
+            continue;
+        *eq = '\0';
+        char *key = line;
+        char *val = eq + 1;
+        trim(key);
+        trim(val);
+
+        for (size_t i = 0; i < cfg_map_len; i++)
+        {
+            if (strcasecmp(key, cfg_map[i].key) == 0)
+            {
+                switch (cfg_map[i].type)
+                {
+                case CT_UINT16:
+                    *(uint16_t *)cfg_map[i].dest = parse_uint16(val);
+                    break;
+                case CT_BOOL:
+                    *(bool *)cfg_map[i].dest = parse_bool(val);
+                    break;
+                case CT_CHAR:
+                    *(char *)cfg_map[i].dest = val[0];
+                    break;
+                }
+                break;
+            }
+        }
+    }
     f_close(&file);
-
-    if (get_config_by_key(BAUD_KEY_NAME, big_buf))
-    {
-        user_config.baud = parse_uint16(get_config_by_key(BAUD_KEY_NAME, big_buf));
-    }
-
-    if (get_config_by_key(CH_DELAY_KEY_NAME, big_buf))
-    {
-        user_config.ch_delay = parse_uint16(get_config_by_key(CH_DELAY_KEY_NAME, big_buf));
-    }
-    if (get_config_by_key(LINE_DELAY_KEY_NAME, big_buf))
-    {
-        user_config.line_delay = parse_uint16(get_config_by_key(LINE_DELAY_KEY_NAME, big_buf));
-    }
-    if (get_config_by_key(USE_HARD_RESET_KEY_NAME, big_buf))
-    {
-        user_config.use_hard_reset = parse_bool(get_config_by_key(USE_HARD_RESET_KEY_NAME, big_buf));
-    }
-    if (get_config_by_key(TOGGLE_CHAR_KEY_NAME, big_buf))
-    {
-        user_config.toggle_char = get_config_by_key(TOGGLE_CHAR_KEY_NAME, big_buf)[0];
-    }
-    if (get_config_by_key(FORCE_UPPER_CASE_KEY_NAME, big_buf))
-    {
-        user_config.force_upper_case = parse_bool(get_config_by_key(FORCE_UPPER_CASE_KEY_NAME, big_buf));
-    }
-    if (get_config_by_key(BS_TO_DEL_KEY_NAME, big_buf))
-    {
-        user_config.bs_to_del = parse_bool(get_config_by_key(BS_TO_DEL_KEY_NAME, big_buf));
-    }
+    return true;
 }
 
-static void catit_str(char *buf, size_t buf_size, const char *key, const char *value)
-{
-    strncat(buf, key, buf_size - strlen(buf) - 1);
-    strncat(buf, " = ", buf_size - strlen(buf) - 1);
-    strncat(buf, value, buf_size - strlen(buf) - 1);
-    strncat(buf, "\n", buf_size - strlen(buf) - 1);
-}
-
-static void catit_uint16(char *buf, size_t buf_size, const char *key, const uint16_t value)
-{
-    char value_str[6]; // 5 digits + NUL
-    snprintf(value_str, sizeof(value_str), "%u", value);
-    strncat(buf, key, buf_size - strlen(buf) - 1);
-    strncat(buf, " = ", buf_size - strlen(buf) - 1);
-    strncat(buf, value_str, buf_size - strlen(buf) - 1);
-    strncat(buf, "\n", buf_size - strlen(buf) - 1);
-}
-static void catit_bool(char *buf, size_t buf_size, const char *key, const bool value)
-{
-    strncat(buf, key, buf_size - strlen(buf) - 1);
-    strncat(buf, " = ", buf_size - strlen(buf) - 1);
-    strncat(buf, bool_to_str(value), buf_size - strlen(buf) - 1);
-    strncat(buf, "\n", buf_size - strlen(buf) - 1);
-}
-
-static void catit_char(char *buf, size_t buf_size, const char *key, const char value)
-{
-    char value_str[2];
-    snprintf(value_str, sizeof(value_str), "%c", value);
-    strncat(buf, key, buf_size - strlen(buf) - 1);
-    strncat(buf, " = ", buf_size - strlen(buf) - 1);
-    strncat(buf, value_str, buf_size - strlen(buf) - 1);
-    strncat(buf, "\n", buf_size - strlen(buf) - 1);
-}
-
-// Save config to a text file
+// Save user_config into SD-card file
 bool save_config_to_sd(void)
 {
     FIL file;
-    if (f_open(&file, CONFIG_FILENAME, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK)
+    if (f_open(&file, CONFIG_FILENAME,
+               FA_WRITE | FA_CREATE_ALWAYS) != FR_OK)
+    {
         return false;
+    }
 
-    char buf[1024];
-    char buf2[1024];
-
-    buf[0] = 0; // Initialize buffer to empty string
-
-    catit_str(buf, sizeof(buf), "ZZ", "ZZZ");
-    catit_uint16(buf, sizeof(buf), BAUD_KEY_NAME, user_config.baud);
-    catit_uint16(buf, sizeof(buf), CH_DELAY_KEY_NAME, user_config.ch_delay);
-    catit_uint16(buf, sizeof(buf), LINE_DELAY_KEY_NAME, user_config.line_delay);
-    catit_bool(buf, sizeof(buf), USE_HARD_RESET_KEY_NAME, user_config.use_hard_reset);
-    catit_char(buf, sizeof(buf), TOGGLE_CHAR_KEY_NAME, user_config.toggle_char);
-    catit_bool(buf, sizeof(buf), FORCE_UPPER_CASE_KEY_NAME, user_config.force_upper_case);
-    catit_bool(buf, sizeof(buf), BS_TO_DEL_KEY_NAME, user_config.bs_to_del);
+    char out[MAX_CONFIG_SIZE] = {0};
+    for (size_t i = 0; i < cfg_map_len; i++)
+    {
+        switch (cfg_map[i].type)
+        {
+        case CT_UINT16:
+            append_kv(out, sizeof(out), cfg_map[i].key,
+                      "%u", *(uint16_t *)cfg_map[i].dest);
+            break;
+        case CT_BOOL:
+            append_kv(out, sizeof(out), cfg_map[i].key,
+                      "%s", (*(bool *)cfg_map[i].dest) ? "true" : "false");
+            break;
+        case CT_CHAR:
+            append_kv(out, sizeof(out), cfg_map[i].key,
+                      "%c", *(char *)cfg_map[i].dest);
+            break;
+        }
+    }
 
     UINT bw;
-    FRESULT fr = f_write(&file, buf, strlen(buf), &bw);
-
+    FRESULT fr = f_write(&file, out, strlen(out), &bw);
     f_close(&file);
-
-    return (fr == FR_OK && bw == strlen(buf));
+    return (fr == FR_OK && bw == strlen(out));
 }
