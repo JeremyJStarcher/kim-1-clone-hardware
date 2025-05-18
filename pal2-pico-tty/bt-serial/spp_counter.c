@@ -266,7 +266,6 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             rfcomm_event_incoming_connection_get_bd_addr(packet, event_addr);
             rfcomm_channel_nr = rfcomm_event_incoming_connection_get_server_channel(packet);
             rfcomm_channel_id = rfcomm_event_incoming_connection_get_rfcomm_cid(packet);
-            system_config.rfcomm_channel_id = rfcomm_channel_id;
 
             printf("RFCOMM channel %u requested for %s\n", rfcomm_channel_nr, bd_addr_to_str(event_addr));
             rfcomm_accept_connection(rfcomm_channel_id);
@@ -285,6 +284,8 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
                 // Starts sending right away without waiting for a keystroke from the receiver.
                 rfcomm_request_can_send_now_event(rfcomm_channel_id); // kick-start TX
                 printf("RFCOMM channel open succeeded. New RFCOMM Channel ID %u, max frame size %u\n", rfcomm_channel_id, mtu);
+                system_config.rfcomm_channel_id = rfcomm_channel_id;
+                system_config.bt_connected = true;
             }
             break;
         case RFCOMM_EVENT_CAN_SEND_NOW:
@@ -315,6 +316,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
         case RFCOMM_EVENT_CHANNEL_CLOSED:
             printf("RFCOMM channel closed\n");
             rfcomm_channel_id = 0;
+            system_config.bt_connected = false;
             break;
 
         default:

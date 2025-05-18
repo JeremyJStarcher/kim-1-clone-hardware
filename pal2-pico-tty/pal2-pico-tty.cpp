@@ -55,6 +55,8 @@ bool wait_for_usb_connection(uint timeout_ms)
 void core1_main(void)
 {
 
+    pal_io_init();
+
     //    bool connected = wait_for_usb_connection(1000);
 
     printf("SERIAL PORT ENABLED\r\n");
@@ -212,6 +214,7 @@ void main_loop(ssd1306_tty_t *tty)
 {
     reset_pal(tty);
     show_default_text(tty);
+    u_reset_terminal();
 
     while (true)
     {
@@ -222,10 +225,10 @@ void main_loop(ssd1306_tty_t *tty)
 
         if (ch_user > -1)
         {
-            u_reset_terminal();
-
             if ((char)ch_user == user_config.toggle_char)
             {
+                u_reset_terminal();
+
                 if (system_config.tty_mode)
                 {
                     u_printf("TTY MODE DISABLED.\n");
@@ -237,6 +240,7 @@ void main_loop(ssd1306_tty_t *tty)
                     enable_tty_mode(tty);
                 }
                 show_default_text(tty);
+                u_reset_terminal();
                 continue;
             }
 
@@ -262,6 +266,9 @@ void main_loop(ssd1306_tty_t *tty)
 
                 process_menu(tty);
                 show_default_text(tty);
+
+                // Just in case something got left in a weird state
+                u_reset_terminal();
             }
             else
             {

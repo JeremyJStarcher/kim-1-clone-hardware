@@ -37,7 +37,9 @@ bool __no_inline_not_in_flash_func(get_bootsel_button)()
 
     // Note we can't call into any sleep functions in flash right now
     for (volatile int i = 0; i < 1000; ++i)
-        ;
+    {
+        tight_loop_contents();
+    }
 
     // The HI GPIO registers in SIO can observe and control the 6 QSPI pins.
     // Note the button pulls the pin *low* when pressed.
@@ -61,7 +63,6 @@ bool __no_inline_not_in_flash_func(get_bootsel_button)()
 
 void test_button(void)
 {
-
     while (true)
     {
         if (get_bootsel_button())

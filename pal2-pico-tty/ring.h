@@ -40,6 +40,11 @@ extern "C"
         r->head = r->tail = 0;
     }
 
+    static inline bool ring_is_empty(ring_t *r)
+    {
+        return r->head == r->tail;
+    }
+
     /* producer – returns 0 on success, −1 if full */
     static inline int ring_push(ring_t *r, uint8_t byte)
     {

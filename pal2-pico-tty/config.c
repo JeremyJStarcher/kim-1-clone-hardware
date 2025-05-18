@@ -20,7 +20,8 @@ pal_config_t system_config = {
     .tty_mode = false,
     .file_status = FILE_STATUS_NONE,
     .soft_version = "1.0.0",
-    .rfcomm_channel_id = -1};
+    .rfcomm_channel_id = -1,
+    .bt_connected = false};
 
 user_config_t user_config = {
     .baud = 9600,

@@ -24,6 +24,7 @@ extern "C"
         const char *soft_version;
         file_status_t file_status;
         uint16_t rfcomm_channel_id;
+        bool bt_connected;
     } pal_config_t;
 
     extern pal_config_t system_config;

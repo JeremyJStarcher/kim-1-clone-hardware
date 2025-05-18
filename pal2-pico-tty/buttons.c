@@ -469,7 +469,7 @@ int menu_tty_up(ssd1306_tty_t *tty)
             ssd1306_tty_show(tty);
             while (1)
             {
-                ;
+                tight_loop_contents();
             }
         }
 

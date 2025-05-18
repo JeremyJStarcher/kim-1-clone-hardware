@@ -123,10 +123,17 @@ extern "C"
 
     /**
      * @brief Restore the terminal to its default state.
-     *     *
+     *
      */
 
     void u_reset_terminal(void);
+
+    /**
+     * @brief Init stuff.
+     *
+     */
+ void pal_io_init(void);
+
 #ifdef __cplusplus
 }
 #endif

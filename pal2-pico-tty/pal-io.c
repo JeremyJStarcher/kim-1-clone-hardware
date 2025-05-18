@@ -4,12 +4,15 @@
 #include "tty_switch_passthrough.pio.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "pico/mutex.h"
 #include <string.h>
 
 #include "btstack.h"
 #include "config.h"
 #include "proj_hw.h"
 #include "kim-reply-parser.h"
+
+static mutex_t print_mutex;
 
 #define ESC "\x1b[" /* or "\033["                    */
 #define RED ESC "31m"
@@ -222,17 +225,16 @@ void enable_tty_mode(ssd1306_tty_t *tty)
     system_config.tty_mode = true;
 
     reset_pal(tty);
-    static const char rubout12[] = "\x7F\x7F\x7F\x7F\x7F\x7F\x7F\x7F\x7F\x7F\x7F\x7F";
+    static const char rubout_str[] = "\x7F";
 
     /* Spam the KIM with CRs until it responds with a prompt. */
     kim_reply_parser_init(&kim_reply_parser);
 
     for (int i = 0; i < 12; i++)
     {
-
-        sleep_ms(10);
-        printf("Sending rubout\n");
-        upload_line_to_pal("\x7F");
+        u_printf("SENDING RUBOUT #%d\n", i);
+        upload_line_to_pal(rubout_str);
+        sleep_ms(100);
 
         if (kim_reply_parser.prompt_seen)
         {
@@ -260,9 +262,12 @@ void upload_char_to_pal(char ch)
     {
         sleep_ms(1);
     }
-    int ch_pal = uart_getc(PAL_UART);
 
-    u_printf(RED "%c" RESET, (char)ch_pal);
+    int ch_pal = pal_getchar();
+    if (ch_pal > -1)
+    {
+        u_printf(RED "%c" RESET, (char)ch_pal);
+    }
 }
 
 void upload_line_to_pal(const char *line)
@@ -342,12 +347,14 @@ void u_putc(char ch_pal)
             u_putc('\r'); // Insert \r before \n if not already part of \r\n
         }
     }
-
-    bool was_empty = (ring_count(&tx_ring) == 0);
-    ring_push(&tx_ring, (char)ch_pal);
-    if (was_empty)
+    if (system_config.rfcomm_channel_id > -1)
     {
-        rfcomm_request_can_send_now_event(system_config.rfcomm_channel_id);
+        bool was_empty = (ring_count(&tx_ring) == 0);
+        ring_push(&tx_ring, (char)ch_pal);
+        if (was_empty)
+        {
+            rfcomm_request_can_send_now_event(system_config.rfcomm_channel_id);
+        }
     }
 
     last_was_cr = (ch_pal == '\r');
@@ -356,6 +363,15 @@ void u_putc(char ch_pal)
 
 void u_puts(const char *s)
 {
+    // If sending bluetooth, wait until there is enough space
+    if (system_config.bt_connected)
+    {
+        do
+        {
+            sleep_ms(10);
+        } while (!ring_is_empty(&tx_ring));
+    }
+
     while (*s)
     {
         u_putc(*s++);
@@ -364,6 +380,7 @@ void u_puts(const char *s)
 
 void u_printf(const char *fmt, ...)
 {
+    mutex_enter_blocking(&print_mutex);
     static char buf[256]; /* adjust to a sensible upper bound */
     va_list ap;
 
@@ -372,9 +389,15 @@ void u_printf(const char *fmt, ...)
     va_end(ap);
 
     u_puts(buf);
+    mutex_exit(&print_mutex);
 }
 
 void u_reset_terminal()
 {
     u_puts(RESET);
+}
+
+void pal_io_init(void)
+{
+    mutex_init(&print_mutex);
 }
