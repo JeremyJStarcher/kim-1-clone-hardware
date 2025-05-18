@@ -34,6 +34,7 @@ SOFTWARE.
 #include "ssd1306.h"
 #include "font.h"
 #include "debug.h"
+#include "pal-io.h"
 
 static bool text_inv_mode = false;
 void ssd1306_tty_show2(ssd1306_tty_t *tty);
@@ -473,17 +474,17 @@ void ssd1306_tty_writechar(ssd1306_tty_t *tty, char c)
 
 void ssd1306_tty_dump(ssd1306_tty_t *tty)
 {
-    printf("DUMP %d %d\n", tty->width, tty->height);
+    u_printf("DUMP %d %d\n", tty->width, tty->height);
     for (int y = 0; y < tty->height; y++)
     {
         for (int x = 0; x < tty->width; x++)
         {
             char c = tty->buffer[y * tty->width + x];
-            putchar((c >= 32 && c <= 126) ? c : '.'); // printable ASCII or placeholder
+            u_putc((c >= 32 && c <= 126) ? c : '.'); // printable ASCII or placeholder
         }
-        putchar('\n');
+        u_putc('\n');
     }
-    printf("---> DUMP\n");
+    u_printf("---> DUMP\n");
 }
 
 void ssd1306_tty_show2(ssd1306_tty_t *tty)
@@ -506,15 +507,11 @@ void ssd1306_tty_show2(ssd1306_tty_t *tty)
 
 void ssd1306_tty_show(ssd1306_tty_t *tty)
 {
-    // ssd1306_tty_show2(tty);               // original routine
-    // return;
-
     uint64_t t0 = time_us_64();      // start‑stamp
     ssd1306_tty_show2(tty);          // original routine
     uint64_t dt = time_us_64() - t0; // elapsed
 
     debug_printf("Time to draw screen %" PRIu64 " µs\n", dt);
-    //    return (uint32_t)dt;                 // ≤ ~71 min fits in 32 bits
 }
 
 void ssd1306_init_tty(ssd1306_t *p, ssd1306_tty_t *tty, const uint8_t *font)
@@ -573,7 +570,9 @@ static void aaa(ssd1306_t *p)
         sleep_ms(SLEEPTIME);
         ssd1306_clear(p);
         if (y == 32)
+        {
             i = -1;
+        }
     }
 
     for (int y = 31; y < 63; ++y)

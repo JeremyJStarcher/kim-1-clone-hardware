@@ -360,6 +360,19 @@ static bool force_tty_mode(ssd1306_tty_t *tty, const char *file_name)
 
     enable_tty_mode(tty);
 
+    if (!kim_reply_parser.prompt_seen)
+    {
+        ssd1306_tty_cls(tty);
+        ssd1306_tty_puts(tty, "KIM PROMPT\n");
+        ssd1306_tty_puts(tty, "NOT FOUND\n\nSYSTEM HALTED");
+        ssd1306_tty_show(tty);
+
+        while (1)
+        {
+            tight_loop_contents();
+        }
+    }
+
     return current_mode;
 }
 

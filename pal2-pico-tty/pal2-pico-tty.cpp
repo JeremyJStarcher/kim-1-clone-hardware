@@ -11,7 +11,6 @@
 #include "bt_main.h"
 #include "pico/multicore.h"
 
-
 #include "sd-card/sd-card.h"
 #include "proj_hw.h"
 #include "buttons.h"
@@ -221,24 +220,26 @@ void main_loop(ssd1306_tty_t *tty)
         /* USB‑>PAL */
         int ch_user = user_getchar();
 
-        if ((char)ch_user == user_config.toggle_char)
-        {
-            if (system_config.tty_mode)
-            {
-                u_printf("TTY MODE DISABLED.\n");
-                disable_tty_mode(tty);
-            }
-            else
-            {
-                u_printf("TTY MODE ENABLED.\n");
-                enable_tty_mode(tty);
-            }
-            show_default_text(tty);
-            continue;
-        }
-
         if (ch_user > -1)
         {
+            u_reset_terminal();
+
+            if ((char)ch_user == user_config.toggle_char)
+            {
+                if (system_config.tty_mode)
+                {
+                    u_printf("TTY MODE DISABLED.\n");
+                    disable_tty_mode(tty);
+                }
+                else
+                {
+                    u_printf("TTY MODE ENABLED.\n");
+                    enable_tty_mode(tty);
+                }
+                show_default_text(tty);
+                continue;
+            }
+
             pal_putc((uint8_t)ch_user);
             idle = false;
         }

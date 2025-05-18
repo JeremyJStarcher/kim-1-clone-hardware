@@ -226,8 +226,10 @@ void enable_tty_mode(ssd1306_tty_t *tty)
 
     /* Spam the KIM with CRs until it responds with a prompt. */
     kim_reply_parser_init(&kim_reply_parser);
-    while (true)
+
+    for (int i = 0; i < 12; i++)
     {
+
         sleep_ms(10);
         printf("Sending rubout\n");
         upload_line_to_pal("\x7F");
@@ -243,7 +245,7 @@ void enable_tty_mode(ssd1306_tty_t *tty)
 
 void upload_char_to_pal(char ch)
 {
-    uart_putc_raw(PAL_UART, (uint8_t)ch);
+    pal_putc((uint8_t)ch);
 
     if (ch == '\r')
     {
@@ -260,7 +262,7 @@ void upload_char_to_pal(char ch)
     }
     int ch_pal = uart_getc(PAL_UART);
 
-    printf(RED "%c" RESET, (char)ch_pal);
+    u_printf(RED "%c" RESET, (char)ch_pal);
 }
 
 void upload_line_to_pal(const char *line)
@@ -284,11 +286,16 @@ void upload_line_to_pal(const char *line)
         upload_char_to_pal('\n');
     }
 
-    while (uart_is_readable(PAL_UART))
+    while (true)
     {
-        int ch_pal = uart_getc(PAL_UART);
+        int ch_pal = pal_getchar();
+        if (ch_pal < 0)
+        {
+            break;
+        }
+
         char ch = (char)ch_pal;
-        printf(YELLOW "%c" RESET, ch);
+        u_printf(YELLOW "%c" RESET, ch);
         kim_reply_parser_feed(&kim_reply_parser, ch);
     }
 }
@@ -327,12 +334,23 @@ void pal_putc(char ch)
 
 void u_putc(char ch_pal)
 {
+    static bool last_was_cr = false;
+    if (ch_pal == '\n')
+    {
+        if (!last_was_cr)
+        {
+            u_putc('\r'); // Insert \r before \n if not already part of \r\n
+        }
+    }
+
     bool was_empty = (ring_count(&tx_ring) == 0);
     ring_push(&tx_ring, (char)ch_pal);
     if (was_empty)
     {
         rfcomm_request_can_send_now_event(system_config.rfcomm_channel_id);
     }
+
+    last_was_cr = (ch_pal == '\r');
     putchar_raw(ch_pal);
 }
 
@@ -354,4 +372,9 @@ void u_printf(const char *fmt, ...)
     va_end(ap);
 
     u_puts(buf);
+}
+
+void u_reset_terminal()
+{
+    u_puts(RESET);
 }

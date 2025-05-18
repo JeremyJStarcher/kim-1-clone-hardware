@@ -115,13 +115,18 @@ extern "C"
     /**
      * @brief printf to the user devices
      *
-     *
      * @param fmt The format string
      *
      */
 
     void u_printf(const char *fmt, ...);
 
+    /**
+     * @brief Restore the terminal to its default state.
+     *     *
+     */
+
+    void u_reset_terminal(void);
 #ifdef __cplusplus
 }
 #endif
