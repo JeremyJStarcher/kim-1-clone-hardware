@@ -22,6 +22,7 @@
 
 #include "ring.h"
 #include "config.h"
+#include "debug.h"
 
 static void ssd1306_set_status(ssd1306_t *disp, const char *s);
 void main_loop(ssd1306_tty_t *tty);
@@ -60,7 +61,7 @@ bool repeating_timer_callback(struct repeating_timer *t)
     // to send ONE CHARACTER per batch at 9600 baud, which bogged down
     // the system.
     //
-    
+
     if (system_config.bt_connected)
     {
         if (!ring_is_empty(&tx_ring))
@@ -78,10 +79,6 @@ void core1_main(void)
     add_repeating_timer_ms(100, repeating_timer_callback, NULL, &timer);
 
     pal_io_init();
-
-    //    bool connected = wait_for_usb_connection(1000);
-
-    printf("SERIAL PORT ENABLED\r\n");
 
     // jjz -> configure_hardware();
 
@@ -117,16 +114,16 @@ void core1_main(void)
 
     // For more examples of UART use see https://github.com/raspberrypi/pico-examples/tree/master/uart
 
-    printf("Scanning I²C\r\n");
+    debug_printf("Scanning I²C\r\n");
     int i2c_addr = scan_i2c_bus();
 
     if (i2c_addr >= 0)
     {
-        printf("First I²C device @ 0x%02X\r\n", i2c_addr);
+       debug_printf("First I²C device @ 0x%02X\r\n", i2c_addr);
     }
     else
     {
-        printf("No I²C devices detected\r\n");
+       debug_printf("No I²C devices detected\r\n");
     }
 
     ssd1306_t disp;
@@ -136,9 +133,9 @@ void core1_main(void)
     ssd1306_init_tty(&disp, &tty, get_font());
 
     ssd1306_set_status(&disp, "SCANNING DRIVE");
-    printf("Scanning drive\r\n");
+    debug_printf("Scanning drive\r\n");
     int k = prep_sd_card();
-    printf("Done scanning drive\r\n");
+  debug_printf("Done scanning drive\r\n");
     ssd1306_set_status(&disp, "SCAN COMPLETE");
 
     load_config_from_sd();
@@ -153,7 +150,7 @@ void core1_main(void)
     size_t mem_size1 = get_largest_alloc_block_binary2(1, 1024 * 1024);
     size_t freeK = (size_t)(mem_size1 / 1024);
 
-    printf("(binary) Largest chunk of free heap = %d %d\r\n", mem_size1, freeK);
+   debug_printf("(binary) Largest chunk of free heap = %d %d\r\n", mem_size1, freeK);
 
     int y = 0;
     int ss = 1;
