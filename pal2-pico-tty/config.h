@@ -37,6 +37,8 @@ extern "C"
 
         bool use_hard_reset;
         char toggle_char;
+        bool force_upper_case;
+        bool bs_to_del;
     } user_config_t;
 
     extern user_config_t user_config;

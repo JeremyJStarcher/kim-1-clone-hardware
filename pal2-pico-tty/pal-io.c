@@ -27,6 +27,27 @@ static const int WINDOW_US = (100 * 1000); // 100 ms
 static PIO pio;
 static int sm;
 
+static int change_input_char(int ch)
+{
+    if (user_config.force_upper_case)
+    {
+        if (ch >= 'a' && ch <= 'z')
+        {
+            ch -= 0x20;
+        }
+    }
+
+    if (user_config.bs_to_del)
+    {
+        if (ch == '\b')
+        {
+            ch = 0x7F; // DEL
+        }
+    }
+
+    return ch;
+}
+
 static void init_switch_mirror(PIO pio, uint sm)
 {
     uint offset = pio_add_program(pio, &tty_switch_passthrough_program);
@@ -307,19 +328,22 @@ void upload_line_to_pal(const char *line)
 
 int user_getchar()
 {
+    int char_out = -1;
     int ch = getchar_timeout_us(0);
     if (ch > -1)
     {
-        return ch;
+        char_out = ch;
     }
 
     if (ring_count(&rx_ring) > 0)
     {
         char ch;
         ring_pop(&rx_ring, &ch);
-        return ch;
+        char_out = ch;
     }
-    return -1;
+
+    char_out = change_input_char(char_out);
+    return char_out;
 }
 
 int pal_getchar()
@@ -363,14 +387,14 @@ void u_putc(char ch_pal)
 
 void u_puts(const char *s)
 {
-    // If sending bluetooth, wait until there is enough space
-    if (system_config.bt_connected)
-    {
-        do
-        {
-            sleep_ms(10);
-        } while (!ring_is_empty(&tx_ring));
-    }
+    // // If sending bluetooth, wait until there is enough space
+    // if (system_config.bt_connected)
+    // {
+    //     do
+    //     {
+    //         sleep_ms(10);
+    //     } while (!ring_is_empty(&tx_ring));
+    // }
 
     while (*s)
     {
@@ -380,7 +404,7 @@ void u_puts(const char *s)
 
 void u_printf(const char *fmt, ...)
 {
-    mutex_enter_blocking(&print_mutex);
+    //    mutex_enter_blocking(&print_mutex);
     static char buf[256]; /* adjust to a sensible upper bound */
     va_list ap;
 
@@ -389,7 +413,7 @@ void u_printf(const char *fmt, ...)
     va_end(ap);
 
     u_puts(buf);
-    mutex_exit(&print_mutex);
+    //    mutex_exit(&print_mutex);
 }
 
 void u_reset_terminal()
