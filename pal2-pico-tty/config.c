@@ -41,7 +41,7 @@ pal_config_t system_config = {
     .soft_version = "1.0.0",
     .rfcomm_channel_id = -1,
     .bt_connected_state = CONNECTION_STATE_NOT_CONNECTED,
-    .bt_connected_state = CONNECTION_STATE_NOT_CONNECTED};
+    .usb_connected_state = CONNECTION_STATE_NOT_CONNECTED};
 
 user_config_t user_config = {
     .baud = 9600,

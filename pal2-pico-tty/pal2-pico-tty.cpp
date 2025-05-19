@@ -235,8 +235,6 @@ void check_connections()
     if (system_config.bt_connected_state == CONNECTION_STATE_NEW_CONNECTION)
     {
         u_printf("\n\n\nBLUETOOTH CONNECTION ESTABLISHED\n");
-        // Clear the buffer out so we don't send stale info
-        ring_init(&tx_ring);
         system_config.bt_connected_state = CONNECTION_STATE_CONNECTED;
     }
 
@@ -244,6 +242,19 @@ void check_connections()
     {
         u_printf("\n\n\nBLUETOOTH CONNECTION LOST\n");
         system_config.bt_connected_state = CONNECTION_STATE_NOT_CONNECTED;
+    }
+
+    if (stdio_usb_connected() && system_config.usb_connected_state == CONNECTION_STATE_NOT_CONNECTED)
+    {
+        u_printf("\n\n\nUSB CONNECTION ESTABLISHED\n");
+        system_config.usb_connected_state = CONNECTION_STATE_CONNECTED;
+    }
+
+    if (!stdio_usb_connected() && system_config.usb_connected_state != CONNECTION_STATE_NOT_CONNECTED)
+    {
+
+        u_printf("\n\n\nUSB CONNECTION LOST\n");
+        system_config.usb_connected_state = CONNECTION_STATE_NOT_CONNECTED;
     }
 }
 

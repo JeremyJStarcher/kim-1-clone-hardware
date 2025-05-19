@@ -33,7 +33,7 @@ extern "C"
         file_status_t file_status;
         uint16_t rfcomm_channel_id;
         connection_state_t bt_connected_state;
-        connection_state_t usb__connected_state;
+        connection_state_t usb_connected_state;
     } pal_config_t;
 
     extern pal_config_t system_config;
