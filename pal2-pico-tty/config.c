@@ -20,7 +20,7 @@
 #define FORCE_UPPER_CASE_KEY_NAME "force_upper_case"
 #define BS_TO_DEL_KEY_NAME "bs_to_del"
 
-#define CONFIG_FILENAME "config.txt"
+#define CONFIG_FILENAME "config.ini"
 
 #ifndef MAX_CONFIG_SIZE
 #define MAX_CONFIG_SIZE 1024
@@ -65,16 +65,17 @@ typedef struct
     const char *key;
     ConfigType type;
     void *dest;
+    const char *comment;
 } ConfigEntry;
 
 static ConfigEntry cfg_map[] = {
-    {BAUD_KEY_NAME, CT_UINT16, &user_config.baud},
-    {CH_DELAY_KEY_NAME, CT_UINT16, &user_config.ch_delay},
-    {LINE_DELAY_KEY_NAME, CT_UINT16, &user_config.line_delay},
-    {USE_HARD_RESET_KEY_NAME, CT_BOOL, &user_config.use_hard_reset},
-    {TOGGLE_CHAR_KEY_NAME, CT_CHAR, &user_config.toggle_char},
-    {FORCE_UPPER_CASE_KEY_NAME, CT_BOOL, &user_config.force_upper_case},
-    {BS_TO_DEL_KEY_NAME, CT_BOOL, &user_config.bs_to_del},
+    {BAUD_KEY_NAME, CT_UINT16, &user_config.baud, "300, 1200, 2400, 9600"},
+    {CH_DELAY_KEY_NAME, CT_UINT16, &user_config.ch_delay, "Delay between characters in ms"},
+    {LINE_DELAY_KEY_NAME, CT_UINT16, &user_config.line_delay, "Delay between lines, in ms"},
+    {USE_HARD_RESET_KEY_NAME, CT_BOOL, &user_config.use_hard_reset, "Use the reset line"},
+    {TOGGLE_CHAR_KEY_NAME, CT_CHAR, &user_config.toggle_char, "What character to use to toggle TTY mode"},
+    {FORCE_UPPER_CASE_KEY_NAME, CT_BOOL, &user_config.force_upper_case, "Force all characters to upper case"},
+    {BS_TO_DEL_KEY_NAME, CT_BOOL, &user_config.bs_to_del, "Send DEL (0x7F) instead of backspace (recommended)"},
 };
 
 static const size_t cfg_map_len = sizeof(cfg_map) / sizeof(cfg_map[0]);
@@ -116,6 +117,20 @@ static bool parse_bool(const char *s)
     return (strcasecmp(s, "true") == 0) || (strcmp(s, "1") == 0);
 }
 
+static void append_comment(char *buf, size_t cap, const char *comment)
+{
+    size_t used = strlen(buf);
+    size_t rem = cap > used ? cap - used - 1 : 0;
+    if (rem == 0)
+        return;
+
+    int n = snprintf(buf + used, rem + 1, "# %s\r\n", comment);
+    if (n < 0 || (size_t)n > rem)
+    {
+        return;
+    }
+}
+
 // Append a key = formatted_value\n into buffer safely
 static void append_kv(
     char *buf,
@@ -150,8 +165,9 @@ static void append_kv(
     if (n < 0 || (size_t)n > rem)
         return;
     used += (size_t)n;
-    if (used + 1 < cap)
+    if (used + 2 < cap)
     {
+        buf[used++] = '\r';
         buf[used++] = '\n';
         buf[used] = '\0';
     }
@@ -219,6 +235,8 @@ bool save_config_to_sd(void)
     char out[MAX_CONFIG_SIZE] = {0};
     for (size_t i = 0; i < cfg_map_len; i++)
     {
+        append_comment(out, sizeof(out), cfg_map[i].comment);
+
         switch (cfg_map[i].type)
         {
         case CT_UINT16:
