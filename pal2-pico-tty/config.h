@@ -16,6 +16,14 @@ extern "C"
         FILE_STATUS_ERROR /* any error condition                  */
     } file_status_t;
 
+    typedef enum
+    {
+        CONNECTION_STATE_NOT_CONNECTED = 10,
+        CONNECTION_STATE_NEW_CONNECTION = 11,
+        CONNECTION_STATE_CONNECTED = 12,
+        CONNECTION_STATE_NEW_DISCONNECT = 13,
+    } connection_state_t;
+
     typedef struct
     {
         bool usb_connected;
@@ -24,7 +32,8 @@ extern "C"
         const char *soft_version;
         file_status_t file_status;
         uint16_t rfcomm_channel_id;
-        bool bt_connected;
+        connection_state_t bt_connected_state;
+        connection_state_t usb__connected_state;
     } pal_config_t;
 
     extern pal_config_t system_config;

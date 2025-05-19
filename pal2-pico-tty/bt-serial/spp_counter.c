@@ -67,6 +67,7 @@ static size_t echo_len = 0;
 
 #include "config.h"
 #include "ring.h"
+#include "debug.h"
 
 #define RFCOMM_SERVER_CHANNEL 1
 #define HEARTBEAT_PERIOD_MS 1000
@@ -114,7 +115,7 @@ static void spp_service_setup(void)
     memset(spp_service_buffer, 0, sizeof(spp_service_buffer));
     spp_create_sdp_record(spp_service_buffer, 0x10001, RFCOMM_SERVER_CHANNEL, "SPP Counter");
     sdp_register_service(spp_service_buffer);
-    printf("SDP service record size: %u\n", de_get_len(spp_service_buffer));
+    debug_printf("SDP service record size: %u\n", de_get_len(spp_service_buffer));
 }
 /* LISTING_END */
 
@@ -133,8 +134,8 @@ static void heartbeat_handler(struct btstack_timer_source *ts)
 
     // if (rfcomm_channel_id)
     // {
-    //     snprintf(lineBuffer, sizeof(lineBuffer), "BTstack counter %04u\n", ++counter);
-    //     printf("%s", lineBuffer);
+    //     sndebug_printf(lineBuffer, sizeof(lineBuffer), "BTstack counter %04u\n", ++counter);
+    //     debug_printf("%s", lineBuffer);
 
     //     rfcomm_request_can_send_now_event(rfcomm_channel_id);
     // }
@@ -211,7 +212,9 @@ static void add_to_ring(volatile ring_t *rx_ring, char *line, size_t len)
 static void send_from_ring(uint16_t cid, volatile ring_t *tx)
 {
     if (!rfcomm_can_send_packet_now(cid))
+    {
         return;
+    }
 
     // Why don't we just eat excess that that will be vanishing
     ring_all_but(tx, 200);
@@ -259,15 +262,15 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             /* LISTING_RESUME */
         case HCI_EVENT_PIN_CODE_REQUEST:
             // inform about pin code request
-            printf("Pin code request - using '0000'\n");
+            debug_printf("Pin code request - using '0000'\n");
             hci_event_pin_code_request_get_bd_addr(packet, event_addr);
             gap_pin_code_response(event_addr, "0000");
             break;
 
         case HCI_EVENT_USER_CONFIRMATION_REQUEST:
             // ssp: inform about user confirmation request
-            printf("SSP User Confirmation Request with numeric value '%06" PRIu32 "'\n", little_endian_read_32(packet, 8));
-            printf("SSP User Confirmation Auto accept\n");
+            debug_printf("SSP User Confirmation Request with numeric value '%06" PRIu32 "'\n", little_endian_read_32(packet, 8));
+            debug_printf("SSP User Confirmation Auto accept\n");
             break;
 
         case RFCOMM_EVENT_INCOMING_CONNECTION:
@@ -275,14 +278,14 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             rfcomm_channel_nr = rfcomm_event_incoming_connection_get_server_channel(packet);
             rfcomm_channel_id = rfcomm_event_incoming_connection_get_rfcomm_cid(packet);
 
-            printf("RFCOMM channel %u requested for %s\n", rfcomm_channel_nr, bd_addr_to_str(event_addr));
+            debug_printf("RFCOMM channel %u requested for %s\n", rfcomm_channel_nr, bd_addr_to_str(event_addr));
             rfcomm_accept_connection(rfcomm_channel_id);
             break;
 
         case RFCOMM_EVENT_CHANNEL_OPENED:
             if (rfcomm_event_channel_opened_get_status(packet))
             {
-                printf("RFCOMM channel open failed, status %u\n", rfcomm_event_channel_opened_get_status(packet));
+                debug_printf("RFCOMM channel open failed, status %u\n", rfcomm_event_channel_opened_get_status(packet));
             }
             else
             {
@@ -291,9 +294,9 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
 
                 // Starts sending right away without waiting for a keystroke from the receiver.
                 rfcomm_request_can_send_now_event(rfcomm_channel_id); // kick-start TX
-                printf("RFCOMM channel open succeeded. New RFCOMM Channel ID %u, max frame size %u\n", rfcomm_channel_id, mtu);
+                debug_printf("RFCOMM channel open succeeded. New RFCOMM Channel ID %u, max frame size %u\n", rfcomm_channel_id, mtu);
                 system_config.rfcomm_channel_id = rfcomm_channel_id;
-                system_config.bt_connected = true;
+                system_config.bt_connected_state = CONNECTION_STATE_NEW_CONNECTION;
             }
             break;
         case RFCOMM_EVENT_CAN_SEND_NOW:
@@ -302,7 +305,6 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             break;
 #endif
             send_from_ring(rfcomm_channel_id, &tx_ring);
-
             break;
 
 #if 0
@@ -319,9 +321,9 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
 
             /* LISTING_PAUSE */
         case RFCOMM_EVENT_CHANNEL_CLOSED:
-            printf("RFCOMM channel closed\n");
+            debug_printf("RFCOMM channel closed\n");
             rfcomm_channel_id = 0;
-            system_config.bt_connected = false;
+            system_config.bt_connected_state = CONNECTION_STATE_NEW_DISCONNECT;
             break;
 
         default:
@@ -331,11 +333,11 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
 
     case RFCOMM_DATA_PACKET:
 #if 0
-            printf("RCV: '");
+            debug_printf("RCV: '");
             for (i=0;i<size;i++){
                 putchar(packet[i]);
             }
-            printf("'\n");
+            debug_printf("'\n");
             break;
 #endif
         add_to_ring(&rx_ring, packet, size);

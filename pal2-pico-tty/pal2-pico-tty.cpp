@@ -62,7 +62,7 @@ bool repeating_timer_callback(struct repeating_timer *t)
     // the system.
     //
 
-    if (system_config.bt_connected)
+    if (system_config.bt_connected_state == CONNECTION_STATE_CONNECTED)
     {
         if (!ring_is_empty(&tx_ring))
         {
@@ -165,7 +165,6 @@ void core1_main(void)
     gpio_pull_up(I2C_SCL);
     // For more examples of I2C use see https://github.com/raspberrypi/pico-examples/tree/master/i2c
 
-
     main_loop(&tty);
 }
 
@@ -229,6 +228,23 @@ void show_default_text(ssd1306_tty_t *tty)
     }
 
     ssd1306_tty_show(tty);
+}
+
+void check_connections()
+{
+    if (system_config.bt_connected_state == CONNECTION_STATE_NEW_CONNECTION)
+    {
+        u_printf("\n\n\nBLUETOOTH CONNECTION ESTABLISHED\n");
+        // Clear the buffer out so we don't send stale info
+        ring_init(&tx_ring);
+        system_config.bt_connected_state = CONNECTION_STATE_CONNECTED;
+    }
+
+    if (system_config.bt_connected_state == CONNECTION_STATE_NEW_DISCONNECT)
+    {
+        u_printf("\n\n\nBLUETOOTH CONNECTION LOST\n");
+        system_config.bt_connected_state = CONNECTION_STATE_NOT_CONNECTED;
+    }
 }
 
 void main_loop(ssd1306_tty_t *tty)
@@ -296,5 +312,7 @@ void main_loop(ssd1306_tty_t *tty)
                 sleep_ms(10);
             }
         }
+
+        check_connections();
     }
 }
