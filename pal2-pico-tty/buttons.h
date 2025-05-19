@@ -53,7 +53,7 @@ typedef enum {
 
   void init_buttons(void);
 
-  button_state_t read_buttons_struct(void);
+  button_state_t read_buttons_struct(ssd1306_tty_t *tty);
 
   dmenu_item_t *add_menu_item(dmenu_list_t *menu, char *label, dmenu_callback_t callback);
   int menu_select(ssd1306_tty_t *tty, dmenu_list_t *menu);

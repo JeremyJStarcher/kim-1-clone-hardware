@@ -104,8 +104,9 @@ void init_buttons(void)
  *  – non‑blocking debounce + repeat generator
  *    Returns a one‑shot “event” pulse for each key.
  * ---------------------------------------------------------------- */
-button_state_t read_buttons_struct(void)
+static button_state_t read_buttons_struct_inner(ssd1306_tty_t *tty)
 {
+
     button_state_t event = {0};
     uint64_t now = time_us_64();
 
@@ -182,6 +183,86 @@ button_state_t read_buttons_struct(void)
     return event; // 1 = “new press” or “repeat pulse”, 0 = idle
 }
 
+static uint64_t seconds_until_screen_hidden = 1 * 60;
+static uint8_t screen_dim_progress_255 = 255; // 255 = full brightness, 0 = dim/off
+
+static uint8_t fade_duration = 30;
+
+button_state_t read_buttons_struct(ssd1306_tty_t *tty)
+{
+    static uint64_t last_activity_us = 0;
+    static bool screen_hidden = false;
+    const uint64_t TIMEOUT_US = seconds_until_screen_hidden * 1000000;
+
+    uint64_t now = time_us_64();
+
+    // Initialize timer on first call
+    if (last_activity_us == 0)
+    {
+        last_activity_us = now;
+        ssd1306_poweron(tty->ssd1306);
+        screen_dim_progress_255 = 255;
+        ssd1306_contrast(tty->ssd1306, screen_dim_progress_255);
+    }
+
+    button_state_t btn = read_buttons_struct_inner(tty);
+
+    if (btn.any)
+    {
+        last_activity_us = now;
+        if (screen_hidden)
+        {
+            button_state_t empty_buttons = {0};
+            btn = empty_buttons;
+        }
+        screen_hidden = false;
+
+        ssd1306_poweron(tty->ssd1306);
+        screen_dim_progress_255 = 255;
+        ssd1306_contrast(tty->ssd1306, screen_dim_progress_255);
+    }
+    else if (now - last_activity_us > TIMEOUT_US)
+    {
+        if (!screen_hidden)
+        {
+            ssd1306_poweroff(tty->ssd1306);
+            screen_hidden = true;
+        }
+    }
+    else if (screen_hidden)
+    {
+        ssd1306_poweron(tty->ssd1306);
+        screen_dim_progress_255 = 255;
+        ssd1306_contrast(tty->ssd1306, screen_dim_progress_255);
+
+        screen_hidden = false;
+    }
+
+    uint64_t elapsed_us = now - last_activity_us;
+    uint64_t remaining_us = (TIMEOUT_US > elapsed_us) ? (TIMEOUT_US - elapsed_us) : 0;
+
+    if (!screen_hidden)
+    {
+        if (remaining_us > fade_duration * 1000000ULL)
+        {
+            // More than 60 seconds left: full brightness
+            screen_dim_progress_255 = 255;
+        }
+        else
+        {
+            // Last 60 seconds: fade from 255 to 0
+            screen_dim_progress_255 = (uint8_t)((remaining_us * 255) / (fade_duration * 1000000ULL));
+        }
+    }
+    else
+    {
+        screen_dim_progress_255 = 0;
+    }
+
+    ssd1306_contrast(tty->ssd1306, screen_dim_progress_255);
+    return btn;
+}
+
 int menu_select(ssd1306_tty_t *tty, dmenu_list_t *menu)
 {
     size_t item_count = menu->count;
@@ -240,7 +321,7 @@ int menu_select(ssd1306_tty_t *tty, dmenu_list_t *menu)
         }
 
         // Read button states
-        button_state_t btn = read_buttons_struct();
+        button_state_t btn = read_buttons_struct(tty);
 
         // Handle button presses
         if (btn.rewind)
@@ -289,7 +370,7 @@ int menu_about(ssd1306_tty_t *tty)
 
     while (true)
     {
-        button_state_t btn = read_buttons_struct();
+        button_state_t btn = read_buttons_struct(tty);
         if (btn.menu)
         {
             return SELECT_RETURN_NOACTION;

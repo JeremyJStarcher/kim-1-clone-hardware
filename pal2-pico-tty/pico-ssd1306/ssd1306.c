@@ -525,6 +525,9 @@ void ssd1306_init_tty(ssd1306_t *p, ssd1306_tty_t *tty, const uint8_t *font)
 
     ssd1306_tty_cls(tty);
 
+    ssd1306_poweron(tty->ssd1306);
+    ssd1306_contrast(tty->ssd1306, 255);
+
     // ssd1306_tty_puts(tty, "Line 1\n", 0);
     // ssd1306_tty_puts(tty, "Line 2\n", 0);
     // ssd1306_tty_puts(tty, "Line 3\n", 0);

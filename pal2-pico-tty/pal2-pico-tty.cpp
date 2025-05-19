@@ -119,11 +119,11 @@ void core1_main(void)
 
     if (i2c_addr >= 0)
     {
-       debug_printf("First I²C device @ 0x%02X\r\n", i2c_addr);
+        debug_printf("First I²C device @ 0x%02X\r\n", i2c_addr);
     }
     else
     {
-       debug_printf("No I²C devices detected\r\n");
+        debug_printf("No I²C devices detected\r\n");
     }
 
     ssd1306_t disp;
@@ -135,7 +135,7 @@ void core1_main(void)
     ssd1306_set_status(&disp, "SCANNING DRIVE");
     debug_printf("Scanning drive\r\n");
     int k = prep_sd_card();
-  debug_printf("Done scanning drive\r\n");
+    debug_printf("Done scanning drive\r\n");
     ssd1306_set_status(&disp, "SCAN COMPLETE");
 
     load_config_from_sd();
@@ -150,7 +150,7 @@ void core1_main(void)
     size_t mem_size1 = get_largest_alloc_block_binary2(1, 1024 * 1024);
     size_t freeK = (size_t)(mem_size1 / 1024);
 
-   debug_printf("(binary) Largest chunk of free heap = %d %d\r\n", mem_size1, freeK);
+    debug_printf("(binary) Largest chunk of free heap = %d %d\r\n", mem_size1, freeK);
 
     int y = 0;
     int ss = 1;
@@ -164,6 +164,7 @@ void core1_main(void)
 
     gpio_pull_up(I2C_SCL);
     // For more examples of I2C use see https://github.com/raspberrypi/pico-examples/tree/master/i2c
+
 
     main_loop(&tty);
 }
@@ -278,7 +279,7 @@ void main_loop(ssd1306_tty_t *tty)
 
         if (idle)
         {
-            button_state_t btn = read_buttons_struct();
+            button_state_t btn = read_buttons_struct(tty);
 
             if (btn.menu == BUTTON_STATE_PRESSED)
             {
