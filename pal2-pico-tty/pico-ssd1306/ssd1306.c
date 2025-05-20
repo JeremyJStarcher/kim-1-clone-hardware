@@ -467,7 +467,7 @@ void ssd1306_tty_putchar(ssd1306_tty_t *tty, char c)
 
     int idx = tty->y * tty->width + tty->x;
     tty->buffer[idx] = c;
-    // tty->color[idx] = color;
+    tty->color[idx] = tty->current_color;
 
     tty->x++;
 }
@@ -493,12 +493,28 @@ void ssd1306_tty_show2(ssd1306_tty_t *tty)
     {
         for (int x = 0; x < tty->width; x++)
         {
-            char c = tty->buffer[y * tty->width + x];
+            size_t offset = y * tty->width + x;
+
+            char c = tty->buffer[offset];
             // putchar((c >= 32 && c <= 126) ? c : '.'); // printable ASCII or placeholder
 
             int px = x * (tty->font_width);
             int py = y * (tty->font_height);
 
+            const uint8_t *font = tty->font;
+            int scale = tty->scale;
+            int strlen = 1;
+
+            if (tty->color[offset] == SSD1306_COLOR_INVERSE)
+            {
+                ssd1306_draw_square(
+                    tty->ssd1306,
+                    px,
+                    py - 1,
+                    strlen * ((font[1] + font[2]) * scale),
+                    (font[0] * scale) + 2);
+            }
+            ssd1306_set_text_inv(tty->ssd1306, tty->color[offset] == SSD1306_COLOR_INVERSE);
             ssd1306_draw_char_with_font(tty->ssd1306, px, py, tty->scale, tty->font, c);
         }
     }
@@ -527,6 +543,7 @@ void ssd1306_init_tty(ssd1306_t *p, ssd1306_tty_t *tty, const uint8_t *font)
 
     ssd1306_poweron(tty->ssd1306);
     ssd1306_contrast(tty->ssd1306, 255);
+    tty->current_color = SSD1306_COLOR_NORMAL;
 
     // ssd1306_tty_puts(tty, "Line 1\n", 0);
     // ssd1306_tty_puts(tty, "Line 2\n", 0);

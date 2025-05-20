@@ -37,6 +37,12 @@ extern "C"
 #include <pico/stdlib.h>
 #include <hardware/i2c.h>
 
+	typedef enum
+	{
+		SSD1306_COLOR_NORMAL = 0,
+		SSD1306_COLOR_INVERSE = 1
+	} ssd1306_color_t;
+
 	/**
 	 *	@brief defines commands used in ssd1306
 	 */
@@ -81,19 +87,20 @@ extern "C"
 	 */
 	typedef struct
 	{
-		uint8_t width;		/**< width of display in characters */
-		uint8_t height;		/**< height of display in charachters */
-		uint8_t *buffer;	/**< display buffer */
-		uint8_t *color;		/**< display color */
-		size_t bufsize;		/**< buffer size */
-		ssd1306_t *ssd1306; /* The display itself */
+		uint8_t width;			/**< width of display in characters */
+		uint8_t height;			/**< height of display in charachters */
+		uint8_t *buffer;		/**< display buffer */
+		ssd1306_color_t *color; /**< display color */
+		size_t bufsize;			/**< buffer size */
+		ssd1306_t *ssd1306;		/* The display itself */
 		const uint8_t *font;
 		int scale;
 		int x; /* The x position */
 		int y; /* The y position */
 		int font_height;
 		int font_width;
-
+		ssd1306_color_t current_color;
+		;
 	} ssd1306_tty_t;
 
 	/**

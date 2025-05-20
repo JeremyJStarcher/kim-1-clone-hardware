@@ -223,11 +223,17 @@ void show_default_text(ssd1306_tty_t *tty)
 
     for (size_t i = 0; i < strlen(bt_mesg); i++)
     {
+
+        tty->current_color = system_config.bt_connected_state == CONNECTION_STATE_CONNECTED
+                                 ? SSD1306_COLOR_INVERSE
+                                 : SSD1306_COLOR_NORMAL;
+
         ssd1306_tty_putchar(tty,
-                              system_config.bt_connected_state == CONNECTION_STATE_CONNECTED
-                                  ? bt_mesg[i]
-                                  : ' ');
+                            system_config.bt_connected_state == CONNECTION_STATE_CONNECTED
+                                ? bt_mesg[i]
+                                : ' ');
     }
+    tty->current_color = SSD1306_COLOR_NORMAL;
 
     if (system_config.file_status == FILE_STATUS_GOOD)
     {
@@ -244,11 +250,16 @@ void show_default_text(ssd1306_tty_t *tty)
 
     for (size_t i = 0; i < strlen(usb_mesg); i++)
     {
+        tty->current_color = system_config.usb_connected_state == CONNECTION_STATE_CONNECTED
+                                 ? SSD1306_COLOR_INVERSE
+                                 : SSD1306_COLOR_NORMAL;
+
         ssd1306_tty_putchar(tty,
-                              system_config.usb_connected_state == CONNECTION_STATE_CONNECTED
-                                  ? usb_mesg[i]
-                                  : ' ');
+                            system_config.usb_connected_state == CONNECTION_STATE_CONNECTED
+                                ? usb_mesg[i]
+                                : ' ');
     }
+    tty->current_color = SSD1306_COLOR_NORMAL;
 
     ssd1306_tty_show(tty);
 }
