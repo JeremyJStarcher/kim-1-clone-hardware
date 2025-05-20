@@ -44,7 +44,9 @@
         "font.h": "c",
         "ssd1306.h": "c",
         "kim-reply-parser.h": "c",
-        "config.h": "c"
+        "config.h": "c",
+        "pio.h": "c",
+        "tty_switch_passthrough.pio.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

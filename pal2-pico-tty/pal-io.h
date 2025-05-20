@@ -119,7 +119,7 @@ extern "C"
      *
      */
 
-    void u_printf(const char *fmt, ...);
+    int u_printf(const char *fmt, ...);
 
     /**
      * @brief Restore the terminal to its default state.
@@ -132,7 +132,15 @@ extern "C"
      * @brief Init stuff.
      *
      */
- void pal_io_init(void);
+    void pal_io_init(void);
+
+    /**
+     * @brief system system messages -- colored differently.
+     *
+     * @param fmt The format string
+     *
+     */
+    void u_banner(const char *fmt, ...);
 
 #ifdef __cplusplus
 }

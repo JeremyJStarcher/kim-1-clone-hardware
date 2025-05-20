@@ -234,26 +234,26 @@ void check_connections()
 {
     if (system_config.bt_connected_state == CONNECTION_STATE_NEW_CONNECTION)
     {
-        u_printf("\n\n\nBLUETOOTH CONNECTION ESTABLISHED\n");
+        u_banner("BLUETOOTH CONNECTION ESTABLISHED");
         system_config.bt_connected_state = CONNECTION_STATE_CONNECTED;
     }
 
     if (system_config.bt_connected_state == CONNECTION_STATE_NEW_DISCONNECT)
     {
-        u_printf("\n\n\nBLUETOOTH CONNECTION LOST\n");
+        u_banner("BLUETOOTH CONNECTION LOST");
         system_config.bt_connected_state = CONNECTION_STATE_NOT_CONNECTED;
     }
 
     if (stdio_usb_connected() && system_config.usb_connected_state == CONNECTION_STATE_NOT_CONNECTED)
     {
-        u_printf("\n\n\nUSB CONNECTION ESTABLISHED\n");
+        u_banner("USB CONNECTION ESTABLISHED");
         system_config.usb_connected_state = CONNECTION_STATE_CONNECTED;
     }
 
     if (!stdio_usb_connected() && system_config.usb_connected_state != CONNECTION_STATE_NOT_CONNECTED)
     {
 
-        u_printf("\n\n\nUSB CONNECTION LOST\n");
+        u_banner("USB CONNECTION LOST");
         system_config.usb_connected_state = CONNECTION_STATE_NOT_CONNECTED;
     }
 }
@@ -279,12 +279,12 @@ void main_loop(ssd1306_tty_t *tty)
 
                 if (system_config.tty_mode)
                 {
-                    u_printf("TTY MODE DISABLED.\n");
+                    u_banner("TTY MODE DISABLED.");
                     disable_tty_mode(tty);
                 }
                 else
                 {
-                    u_printf("TTY MODE ENABLED.\n");
+                    u_banner("TTY MODE ENABLED.");
                     enable_tty_mode(tty);
                 }
                 show_default_text(tty);

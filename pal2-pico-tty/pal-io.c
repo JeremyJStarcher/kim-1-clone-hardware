@@ -11,13 +11,13 @@
 #include "config.h"
 #include "proj_hw.h"
 #include "kim-reply-parser.h"
+#include "ansi.h"
 
 static mutex_t print_mutex;
 
-#define ESC "\x1b[" /* or "\033["                    */
-#define RED ESC "31m"
-#define YELLOW ESC "33m"
-#define RESET ESC "0m"
+#define RED ANSI_RED
+#define YELLOW ANSI_YELLOW
+#define RESET ANSI_RESET
 
 #define input_gpio TTY_SWITCH1_INPUT
 #define output_gpio TTY_SWITCH2_OUTPUT
@@ -389,17 +389,18 @@ void u_puts(const char *s)
     }
 }
 
-void u_printf(const char *fmt, ...)
+int u_printf(const char *fmt, ...)
 {
     //    mutex_enter_blocking(&print_mutex);
     static char buf[256]; /* adjust to a sensible upper bound */
     va_list ap;
 
     va_start(ap, fmt);
-    vsnprintf(buf, sizeof buf, fmt, ap);
+    int len = vsnprintf(buf, sizeof buf, fmt, ap);
     va_end(ap);
 
     u_puts(buf);
+    return len;
     //    mutex_exit(&print_mutex);
 }
 
@@ -411,4 +412,22 @@ void u_reset_terminal()
 void pal_io_init(void)
 {
     mutex_init(&print_mutex);
+}
+
+void u_banner(const char *fmt, ...)
+{
+    u_printf("\n\n" ANSI_BG_BLUE ANSI_WHITE);
+
+    va_list ap;
+
+    va_start(ap, fmt);
+    int len = u_printf(fmt, ap);
+    va_end(ap);
+
+    for (int i = len; i < 79; i++)
+    {
+        u_putc('_');
+    }
+
+    u_printf(ANSI_RESET "\n");
 }
