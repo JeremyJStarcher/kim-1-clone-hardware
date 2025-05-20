@@ -204,50 +204,78 @@ static void ssd1306_set_status(ssd1306_t *disp, const char *s)
 
 void show_default_text(ssd1306_tty_t *tty)
 {
+
+    char bt_mesg[] = "BT";
+    char usb_mesg[] = "USB";
+
     ssd1306_tty_cls(tty);
-    ssd1306_tty_puts(tty, " TTY MODE\n");
-    ssd1306_tty_puts(tty, " USB<->PAL2\n");
+    ssd1306_tty_puts(tty, "USB<->PAL2\n");
     if (system_config.tty_mode)
     {
-        ssd1306_tty_puts(tty, " TTY MODE\n");
+        ssd1306_tty_puts(tty, "TTY MODE\n");
     }
     else
     {
-        ssd1306_tty_puts(tty, " PAL2 MODE\n");
+        ssd1306_tty_puts(tty, "PAL2 MODE\n");
     }
 
-    ssd1306_tty_printf(tty, "Type '%c' to toggle.\n", user_config.toggle_char);
+    ssd1306_tty_printf(tty, "'%c' TO TOGGLE.\n\n", user_config.toggle_char);
+
+    for (size_t i = 0; i < strlen(bt_mesg); i++)
+    {
+        ssd1306_tty_putchar(tty,
+                              system_config.bt_connected_state == CONNECTION_STATE_CONNECTED
+                                  ? bt_mesg[i]
+                                  : ' ');
+    }
 
     if (system_config.file_status == FILE_STATUS_GOOD)
     {
-        ssd1306_tty_puts(tty, "\n UPLOAD SUCCESSFUL\n");
+        ssd1306_tty_puts(tty, "  LOAD SUCCESS  ");
     }
-    if (system_config.file_status == FILE_STATUS_ERROR)
+    else if (system_config.file_status == FILE_STATUS_ERROR)
     {
-        ssd1306_tty_puts(tty, "\n UPLOAD ERROR\n");
+        ssd1306_tty_puts(tty, "   LOAD ERROR   ");
+    }
+    else
+    {
+        ssd1306_tty_puts(tty, "                ");
+    }
+
+    for (size_t i = 0; i < strlen(usb_mesg); i++)
+    {
+        ssd1306_tty_putchar(tty,
+                              system_config.usb_connected_state == CONNECTION_STATE_CONNECTED
+                                  ? usb_mesg[i]
+                                  : ' ');
     }
 
     ssd1306_tty_show(tty);
 }
 
-void check_connections()
+void check_connections(ssd1306_tty_t *tty)
 {
+    bool has_changed = false;
+
     if (system_config.bt_connected_state == CONNECTION_STATE_NEW_CONNECTION)
     {
         u_banner("BLUETOOTH CONNECTION ESTABLISHED");
         system_config.bt_connected_state = CONNECTION_STATE_CONNECTED;
+        has_changed = true;
     }
 
     if (system_config.bt_connected_state == CONNECTION_STATE_NEW_DISCONNECT)
     {
         u_banner("BLUETOOTH CONNECTION LOST");
         system_config.bt_connected_state = CONNECTION_STATE_NOT_CONNECTED;
+        has_changed = true;
     }
 
     if (stdio_usb_connected() && system_config.usb_connected_state == CONNECTION_STATE_NOT_CONNECTED)
     {
         u_banner("USB CONNECTION ESTABLISHED");
         system_config.usb_connected_state = CONNECTION_STATE_CONNECTED;
+        has_changed = true;
     }
 
     if (!stdio_usb_connected() && system_config.usb_connected_state != CONNECTION_STATE_NOT_CONNECTED)
@@ -255,6 +283,13 @@ void check_connections()
 
         u_banner("USB CONNECTION LOST");
         system_config.usb_connected_state = CONNECTION_STATE_NOT_CONNECTED;
+        has_changed = true;
+    }
+
+    if (has_changed)
+    {
+        reset_screen_timer();
+        show_default_text(tty);
     }
 }
 
@@ -324,6 +359,6 @@ void main_loop(ssd1306_tty_t *tty)
             }
         }
 
-        check_connections();
+        check_connections(tty);
     }
 }

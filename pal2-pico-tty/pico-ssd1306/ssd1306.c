@@ -438,11 +438,11 @@ void ssd1306_tty_puts(ssd1306_tty_t *tty, const char *s)
 {
     while (*s)
     {
-        ssd1306_tty_writechar(tty, *s++);
+        ssd1306_tty_putchar(tty, *s++);
     }
 }
 
-void ssd1306_tty_writechar(ssd1306_tty_t *tty, char c)
+void ssd1306_tty_putchar(ssd1306_tty_t *tty, char c)
 {
     if (c == '\n')
     {

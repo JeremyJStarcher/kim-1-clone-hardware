@@ -6,13 +6,13 @@ extern "C"
 
 #include "ssd1306.h"
 
-typedef enum {
+  typedef enum
+  {
     FILE_TYPE_PTP,        /* Proprietary Transfer Protocol           */
     FILE_TYPE_PLAIN_TEXT, /* Human-readable text                     */
 
-    FILE_TYPE_COUNT       /* Always keep this as the last item.      */
-} file_type_t;
-
+    FILE_TYPE_COUNT /* Always keep this as the last item.      */
+  } file_type_t;
 
   const uint8_t PIN_MENU = 12;
   const uint8_t PIN_REWIND = 6;
@@ -60,6 +60,7 @@ typedef enum {
   void free_menu(dmenu_list_t *menu);
   int process_menu(ssd1306_tty_t *tty);
   int process_menu_inner(ssd1306_tty_t *tty, dmenu_list_t *menu);
+  void reset_screen_timer(void);
 
 #ifdef __cplusplus
 }

@@ -187,10 +187,15 @@ static uint64_t seconds_until_screen_hidden = 1 * 60;
 static uint8_t screen_dim_progress_255 = 255; // 255 = full brightness, 0 = dim/off
 
 static uint8_t fade_duration = 30;
+static uint64_t last_activity_us = 0;
+
+void reset_screen_timer()
+{
+    last_activity_us = 0;
+}
 
 button_state_t read_buttons_struct(ssd1306_tty_t *tty)
 {
-    static uint64_t last_activity_us = 0;
     static bool screen_hidden = false;
     const uint64_t TIMEOUT_US = seconds_until_screen_hidden * 1000000;
 
