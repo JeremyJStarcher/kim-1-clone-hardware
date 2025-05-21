@@ -13,6 +13,7 @@
 #include "pal-io.h"
 #include "config.h"
 #include "kim-reply-parser.h"
+#include "edit-settings.h"
 
 static const int LINE_BUF_LEN = 255;
 
@@ -21,9 +22,13 @@ static const int BAR_WIDTH_CHARS = 20; // ########··············
 
 static const char DIR_SYMBOLS[] = "[]";
 
-static const int SELECT_RETURN_CLOSE = -1;
-static const int SELECT_RETURN_NOACTION = -2;
-static const int SELECT_RETURN_CLOSE_ALL = -3;
+
+
+  const uint8_t PIN_MENU = 12;
+  const uint8_t PIN_REWIND = 6;
+  const uint8_t PIN_PLAY = 7;
+  const uint8_t PIN_FASTFORWARD = 3;
+  const uint8_t PIN_RECORD = 2;
 
 /* ----------------------------------------------------------------
  *  Per‑build tuning — adjust to taste
@@ -663,10 +668,11 @@ int process_menu(ssd1306_tty_t *tty)
     dmenu_list_t menu = {.count = 0};
 
     // ✅ Populate menu
-    add_menu_item(&menu, "ABOUT", menu_about);
     add_menu_item(&menu, "TTY UP", menu_tty_up);
-    add_menu_item(&menu, "Option 1", NULL);
-    add_menu_item(&menu, "Option 2", NULL);
+    add_menu_item(&menu, "SETTINGS", menu_settings);
+    add_menu_item(&menu, "ABOUT", menu_about);
+    // add_menu_item(&menu, "Option 1", NULL);
+    // add_menu_item(&menu, "Option 2", NULL);
 
     int ret = process_menu_inner(tty, &menu);
 
@@ -674,7 +680,7 @@ int process_menu(ssd1306_tty_t *tty)
     return ret;
 }
 
-dmenu_item_t *add_menu_item(dmenu_list_t *menu, char *label, dmenu_callback_t callback)
+dmenu_item_t *add_menu_item(dmenu_list_t *menu, const char *label, dmenu_callback_t callback)
 {
     if (menu->count >= MAX_MENU_ITEMS)
         return NULL; // handle overflow

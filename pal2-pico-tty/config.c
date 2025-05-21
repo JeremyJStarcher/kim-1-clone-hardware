@@ -52,24 +52,7 @@ user_config_t user_config = {
     .force_upper_case = false,
     .bs_to_del = false};
 
-// Types of config entries
-typedef enum
-{
-    CT_UINT16,
-    CT_BOOL,
-    CT_CHAR
-} ConfigType;
-
-// Mapping from key name to storage location
-typedef struct
-{
-    const char *key;
-    ConfigType type;
-    void *dest;
-    const char *comment;
-} ConfigEntry;
-
-static ConfigEntry cfg_map[] = {
+ConfigEntry cfg_map[] = {
     {BAUD_KEY_NAME, CT_UINT16, &user_config.baud, "300, 1200, 2400, 9600"},
     {CH_DELAY_KEY_NAME, CT_UINT16, &user_config.ch_delay, "Delay between characters in ms"},
     {LINE_DELAY_KEY_NAME, CT_UINT16, &user_config.line_delay, "Delay between lines, in ms"},
@@ -79,7 +62,7 @@ static ConfigEntry cfg_map[] = {
     {BS_TO_DEL_KEY_NAME, CT_BOOL, &user_config.bs_to_del, "Send DEL (0x7F) instead of backspace (recommended)"},
 };
 
-static const size_t cfg_map_len = sizeof(cfg_map) / sizeof(cfg_map[0]);
+ size_t cfg_map_len = sizeof(cfg_map) / sizeof(cfg_map[0]);
 
 // Trim leading/trailing ASCII whitespace in place
 static void trim(char *str)

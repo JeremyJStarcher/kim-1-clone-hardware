@@ -63,6 +63,7 @@ add_executable(
     kim-reply-parser.c
     bt-serial/bt_main.c
     bt-serial/spp_counter.c
+    edit-settings.c
 )
 
 pico_set_program_name(pal2-pico-tty "pal2-pico-tty")

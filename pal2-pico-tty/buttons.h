@@ -6,6 +6,10 @@ extern "C"
 
 #include "ssd1306.h"
 
+  static const int SELECT_RETURN_CLOSE = -1;
+  static const int SELECT_RETURN_NOACTION = -2;
+  static const int SELECT_RETURN_CLOSE_ALL = -3;
+
   typedef enum
   {
     FILE_TYPE_PTP,        /* Proprietary Transfer Protocol           */
@@ -14,23 +18,26 @@ extern "C"
     FILE_TYPE_COUNT /* Always keep this as the last item.      */
   } file_type_t;
 
-  const uint8_t PIN_MENU = 12;
-  const uint8_t PIN_REWIND = 6;
-  const uint8_t PIN_PLAY = 7;
-  const uint8_t PIN_FASTFORWARD = 3;
-  const uint8_t PIN_RECORD = 2;
+  extern const uint8_t PIN_MENU;
+  extern const uint8_t PIN_REWIND;
+  extern const uint8_t PIN_PLAY;
+  extern const uint8_t PIN_FASTFORWARD;
+  extern const uint8_t PIN_RECORD;
 
-  const uint8_t BUTTON_STATE_NONE = 0;
-  const uint8_t BUTTON_STATE_PRESSED = 1;
-  const uint8_t BUTTON_STATE_REPEAT = 2;
+  typedef enum
+  {
+    BUTTON_STATE_NONE = 0,
+    BUTTON_STATE_PRESSED = 1,
+    BUTTON_STATE_REPEAT = 2
+  } button_state_enum_t;
 
   typedef struct
   {
-    uint8_t menu;
-    uint8_t rewind;
-    uint8_t play;
-    uint8_t fast_forward;
-    uint8_t record;
+    button_state_enum_t menu;
+    button_state_enum_t rewind;
+    button_state_enum_t play;
+    button_state_enum_t fast_forward;
+    button_state_enum_t record;
     bool any;
   } button_state_t;
 
@@ -40,7 +47,7 @@ extern "C"
 
   typedef struct
   {
-    char *label;
+    const char *label;
     dmenu_callback_t callback;
     bool is_dir; // A prefix symbol to show
   } dmenu_item_t;
@@ -55,7 +62,7 @@ extern "C"
 
   button_state_t read_buttons_struct(ssd1306_tty_t *tty);
 
-  dmenu_item_t *add_menu_item(dmenu_list_t *menu, char *label, dmenu_callback_t callback);
+  dmenu_item_t *add_menu_item(dmenu_list_t *menu, const char *label, dmenu_callback_t callback);
   int menu_select(ssd1306_tty_t *tty, dmenu_list_t *menu);
   void free_menu(dmenu_list_t *menu);
   int process_menu(ssd1306_tty_t *tty);

@@ -50,7 +50,26 @@ extern "C"
         bool bs_to_del;
     } user_config_t;
 
+    // Types of config entries
+    typedef enum
+    {
+        CT_UINT16,
+        CT_BOOL,
+        CT_CHAR
+    } ConfigType;
+
+    // Mapping from key name to storage location
+    typedef struct
+    {
+        const char *key;
+        ConfigType type;
+        void *dest;
+        const char *comment;
+    } ConfigEntry;
+
     extern user_config_t user_config;
+    extern ConfigEntry cfg_map[];
+    extern size_t cfg_map_len;
 
     extern volatile ring_t tx_ring; /* producer: core-1, consumer: core-0 */
     extern volatile ring_t rx_ring; /* producer: core-0, consumer: core-1 */
