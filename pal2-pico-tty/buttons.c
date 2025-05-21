@@ -491,13 +491,14 @@ void send_file_to_pal(ssd1306_tty_t *tty, const char *dir, const char *file_name
     const DWORD total = f_size(&fp);
     uint32_t last_step = 0; /* last % drawn       */
 
-    bool current_mode = force_tty_mode(tty, file_name);
+    bool current_mode = system_config.tty_mode;
 
     oled_progress(tty, 0, total, file_name);
 
     file_type_t file_type = calculate_file_type(file_name);
     if (file_type == FILE_TYPE_PTP)
     {
+        current_mode = force_tty_mode(tty, file_name);
         upload_line_to_pal("L");
     }
 
