@@ -56,19 +56,26 @@ extern "C"
         CT_UINT16,
         CT_BOOL,
         CT_CHAR
-    } ConfigType;
+    } config_type_t;
+
+    typedef enum
+    {
+        MENU_TYPE_LIST,
+    } config_menu_type_t;
 
     // Mapping from key name to storage location
     typedef struct
     {
         const char *key;
-        ConfigType type;
+        config_type_t type;
+        config_menu_type_t menu_type;
         void *dest;
         const char *comment;
-    } ConfigEntry;
+        const char *validations;
+    } config_entry_t;
 
     extern user_config_t user_config;
-    extern ConfigEntry cfg_map[];
+    extern config_entry_t cfg_map[];
     extern size_t cfg_map_len;
 
     extern volatile ring_t tx_ring; /* producer: core-1, consumer: core-0 */
@@ -76,6 +83,8 @@ extern "C"
 
     bool load_config_from_sd(void);
     bool save_config_to_sd(void);
+    void parse_config_line(char *line);
+
 
 #ifdef __cplusplus
 }

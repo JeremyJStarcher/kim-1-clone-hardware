@@ -52,17 +52,17 @@ user_config_t user_config = {
     .force_upper_case = false,
     .bs_to_del = false};
 
-ConfigEntry cfg_map[] = {
-    {BAUD_KEY_NAME, CT_UINT16, &user_config.baud, "300, 1200, 2400, 9600"},
-    {CH_DELAY_KEY_NAME, CT_UINT16, &user_config.ch_delay, "Delay between characters in ms"},
-    {LINE_DELAY_KEY_NAME, CT_UINT16, &user_config.line_delay, "Delay between lines, in ms"},
-    {USE_HARD_RESET_KEY_NAME, CT_BOOL, &user_config.use_hard_reset, "Use the reset line"},
-    {TOGGLE_CHAR_KEY_NAME, CT_CHAR, &user_config.toggle_char, "What character to use to toggle TTY mode"},
-    {FORCE_UPPER_CASE_KEY_NAME, CT_BOOL, &user_config.force_upper_case, "Force all characters to upper case"},
-    {BS_TO_DEL_KEY_NAME, CT_BOOL, &user_config.bs_to_del, "Send DEL (0x7F) instead of backspace (recommended)"},
+config_entry_t cfg_map[] = {
+    {BAUD_KEY_NAME, CT_UINT16, MENU_TYPE_LIST, &user_config.baud, "300, 1200, 2400, 9600", "300\t1200\t2400\t9600"},
+    {CH_DELAY_KEY_NAME, CT_UINT16, MENU_TYPE_LIST, &user_config.ch_delay, "Delay between characters in ms", ""},
+    {LINE_DELAY_KEY_NAME, CT_UINT16, MENU_TYPE_LIST, &user_config.line_delay, "Delay between lines, in ms", ""},
+    {USE_HARD_RESET_KEY_NAME, CT_BOOL, MENU_TYPE_LIST, &user_config.use_hard_reset, "Use the reset line", ""},
+    {TOGGLE_CHAR_KEY_NAME, CT_CHAR, MENU_TYPE_LIST, &user_config.toggle_char, "What character to use to toggle TTY mode", ""},
+    {FORCE_UPPER_CASE_KEY_NAME, CT_BOOL, MENU_TYPE_LIST, &user_config.force_upper_case, "Force all characters to upper case", ""},
+    {BS_TO_DEL_KEY_NAME, CT_BOOL, MENU_TYPE_LIST, &user_config.bs_to_del, "Send DEL (0x7F) instead of backspace (recommended)", ""},
 };
 
- size_t cfg_map_len = sizeof(cfg_map) / sizeof(cfg_map[0]);
+size_t cfg_map_len = sizeof(cfg_map) / sizeof(cfg_map[0]);
 
 // Trim leading/trailing ASCII whitespace in place
 static void trim(char *str)
@@ -157,6 +157,43 @@ static void append_kv(
     }
 }
 
+void parse_config_line(char *line)
+{
+    trim(line);
+    if (line[0] == '\0' || line[0] == '#')
+        return;
+
+    char *eq = strchr(line, '=');
+    if (!eq)
+        return;
+
+    *eq = '\0';
+    char *key = line;
+    char *val = eq + 1;
+    trim(key);
+    trim(val);
+
+    for (size_t i = 0; i < cfg_map_len; i++)
+    {
+        if (strcasecmp(key, cfg_map[i].key) == 0)
+        {
+            switch (cfg_map[i].type)
+            {
+            case CT_UINT16:
+                *(uint16_t *)cfg_map[i].dest = parse_uint16(val);
+                break;
+            case CT_BOOL:
+                *(bool *)cfg_map[i].dest = parse_bool(val);
+                break;
+            case CT_CHAR:
+                *(char *)cfg_map[i].dest = val[0];
+                break;
+            }
+            break;
+        }
+    }
+}
+
 // Load config from SD-card file into user_config
 bool load_config_from_sd(void)
 {
@@ -169,38 +206,7 @@ bool load_config_from_sd(void)
     char line[MAX_LINE_LEN];
     while (f_gets(line, sizeof(line), &file))
     {
-        trim(line);
-        if (line[0] == '\0' || line[0] == '#')
-            continue;
-
-        char *eq = strchr(line, '=');
-        if (!eq)
-            continue;
-        *eq = '\0';
-        char *key = line;
-        char *val = eq + 1;
-        trim(key);
-        trim(val);
-
-        for (size_t i = 0; i < cfg_map_len; i++)
-        {
-            if (strcasecmp(key, cfg_map[i].key) == 0)
-            {
-                switch (cfg_map[i].type)
-                {
-                case CT_UINT16:
-                    *(uint16_t *)cfg_map[i].dest = parse_uint16(val);
-                    break;
-                case CT_BOOL:
-                    *(bool *)cfg_map[i].dest = parse_bool(val);
-                    break;
-                case CT_CHAR:
-                    *(char *)cfg_map[i].dest = val[0];
-                    break;
-                }
-                break;
-            }
-        }
+        parse_config_line(line);
     }
     f_close(&file);
     return true;

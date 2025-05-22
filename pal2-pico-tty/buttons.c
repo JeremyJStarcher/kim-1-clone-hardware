@@ -22,13 +22,11 @@ static const int BAR_WIDTH_CHARS = 20; // ########··············
 
 static const char DIR_SYMBOLS[] = "[]";
 
-
-
-  const uint8_t PIN_MENU = 12;
-  const uint8_t PIN_REWIND = 6;
-  const uint8_t PIN_PLAY = 7;
-  const uint8_t PIN_FASTFORWARD = 3;
-  const uint8_t PIN_RECORD = 2;
+const uint8_t PIN_MENU = 12;
+const uint8_t PIN_REWIND = 6;
+const uint8_t PIN_PLAY = 7;
+const uint8_t PIN_FASTFORWARD = 3;
+const uint8_t PIN_RECORD = 2;
 
 /* ----------------------------------------------------------------
  *  Per‑build tuning — adjust to taste
@@ -372,7 +370,7 @@ int menu_select(ssd1306_tty_t *tty, dmenu_list_t *menu)
     }
 }
 
-int menu_about(ssd1306_tty_t *tty)
+int menu_about(ssd1306_tty_t *tty, void *_item)
 {
     ssd1306_tty_cls(tty);
     ssd1306_tty_puts(tty, "ABOUT");
@@ -535,7 +533,7 @@ void send_file_to_pal(ssd1306_tty_t *tty, const char *dir, const char *file_name
     }
 }
 
-int menu_tty_up(ssd1306_tty_t *tty)
+int menu_tty_up(ssd1306_tty_t *tty, void *_item)
 {
     int menu_tty_up_return = 0;
     dmenu_list_t menu = {.count = 0};
@@ -649,7 +647,7 @@ int process_menu_inner(ssd1306_tty_t *tty, dmenu_list_t *menu)
             dmenu_item_t item = menu->items[selected];
             if (item.callback != NULL)
             {
-                return item.callback(tty);
+                return item.callback(tty, &item);
             }
             else
             {

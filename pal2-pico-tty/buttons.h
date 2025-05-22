@@ -5,6 +5,7 @@ extern "C"
 #endif
 
 #include "ssd1306.h"
+#include "config.h"
 
   static const int SELECT_RETURN_CLOSE = -1;
   static const int SELECT_RETURN_NOACTION = -2;
@@ -43,13 +44,19 @@ extern "C"
 
 #define MAX_MENU_ITEMS 32 // or whatever fits in memory safely
 
-  typedef int (*dmenu_callback_t)(ssd1306_tty_t *tty);
+  // Forward declaration for use in the callback type
+  typedef int (*dmenu_callback_t)(ssd1306_tty_t *tty, void *menu_item);
 
   typedef struct
   {
     const char *label;
     dmenu_callback_t callback;
+
+    // Used in directory lists
     bool is_dir; // A prefix symbol to show
+
+    // Used in editing user config
+    config_entry_t *config_entry;
   } dmenu_item_t;
 
   typedef struct

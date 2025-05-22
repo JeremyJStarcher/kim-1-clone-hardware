@@ -245,6 +245,7 @@ void enable_tty_mode(ssd1306_tty_t *tty)
     init_switch_mirror(pio, (uint)sm);
     system_config.tty_mode = true;
 
+    uart_set_baudrate(PAL_UART, user_config.baud);
     reset_pal(tty);
     static const char rubout_str[] = "\x7F";
 
