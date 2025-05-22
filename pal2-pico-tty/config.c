@@ -54,12 +54,12 @@ user_config_t user_config = {
 
 config_entry_t cfg_map[] = {
     {BAUD_KEY_NAME, CT_UINT16, MENU_TYPE_LIST, &user_config.baud, "300, 1200, 2400, 9600", "300\t1200\t2400\t9600"},
-    {CH_DELAY_KEY_NAME, CT_UINT16, MENU_TYPE_LIST, &user_config.ch_delay, "Delay between characters in ms", ""},
-    {LINE_DELAY_KEY_NAME, CT_UINT16, MENU_TYPE_LIST, &user_config.line_delay, "Delay between lines, in ms", ""},
-    {USE_HARD_RESET_KEY_NAME, CT_BOOL, MENU_TYPE_LIST, &user_config.use_hard_reset, "Use the reset line", ""},
-    {TOGGLE_CHAR_KEY_NAME, CT_CHAR, MENU_TYPE_LIST, &user_config.toggle_char, "What character to use to toggle TTY mode", ""},
-    {FORCE_UPPER_CASE_KEY_NAME, CT_BOOL, MENU_TYPE_LIST, &user_config.force_upper_case, "Force all characters to upper case", ""},
-    {BS_TO_DEL_KEY_NAME, CT_BOOL, MENU_TYPE_LIST, &user_config.bs_to_del, "Send DEL (0x7F) instead of backspace (recommended)", ""},
+    {CH_DELAY_KEY_NAME, CT_UINT16, MENU_TYPE_NONE, &user_config.ch_delay, "Delay between characters in ms", ""},
+    {LINE_DELAY_KEY_NAME, CT_UINT16, MENU_TYPE_NONE, &user_config.line_delay, "Delay between lines, in ms", ""},
+    {USE_HARD_RESET_KEY_NAME, CT_BOOL, MENU_TYPE_LIST, &user_config.use_hard_reset, "Use the reset line", "true\tfalse"},
+    {TOGGLE_CHAR_KEY_NAME, CT_CHAR,MENU_TYPE_NONE, &user_config.toggle_char, "What character to use to toggle TTY mode", ""},
+    {FORCE_UPPER_CASE_KEY_NAME, CT_BOOL, MENU_TYPE_LIST, &user_config.force_upper_case, "Force all characters to upper case", "true\tfalse"},
+    {BS_TO_DEL_KEY_NAME, CT_BOOL, MENU_TYPE_LIST, &user_config.bs_to_del, "Send DEL (0x7F) instead of backspace (recommended)", "true\tfalse"},
 };
 
 size_t cfg_map_len = sizeof(cfg_map) / sizeof(cfg_map[0]);

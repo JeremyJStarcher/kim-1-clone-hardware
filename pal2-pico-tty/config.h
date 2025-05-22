@@ -60,6 +60,7 @@ extern "C"
 
     typedef enum
     {
+        MENU_TYPE_NONE,
         MENU_TYPE_LIST,
     } config_menu_type_t;
 
