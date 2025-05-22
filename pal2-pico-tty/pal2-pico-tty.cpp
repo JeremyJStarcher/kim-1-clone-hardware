@@ -76,7 +76,7 @@ bool repeating_timer_callback(struct repeating_timer *t)
 void core1_main(void)
 {
     struct repeating_timer timer;
-    add_repeating_timer_ms(100, repeating_timer_callback, NULL, &timer);
+   // add_repeating_timer_ms(100, repeating_timer_callback, NULL, &timer);
 
     pal_io_init();
 

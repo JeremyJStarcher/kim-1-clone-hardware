@@ -41,7 +41,7 @@
 
 #include <stddef.h> /* defines size_t */
 
-#define ECHO_BUF_SIZE 1000
+#define ECHO_BUF_SIZE 512
 static char echo_buf[ECHO_BUF_SIZE];
 static size_t echo_len = 0;
 
@@ -69,8 +69,9 @@ static size_t echo_len = 0;
 #include "ring.h"
 #include "debug.h"
 
+#define debug_printf(...) printf(__VA_ARGS__)
 #define RFCOMM_SERVER_CHANNEL 1
-#define HEARTBEAT_PERIOD_MS 1000
+#define HEARTBEAT_PERIOD_MS 100
 
 static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size);
 
@@ -127,18 +128,12 @@ static void spp_service_setup(void)
 
 /* LISTING_START(PeriodicCounter): Periodic Counter */
 static btstack_timer_source_t heartbeat;
-static char lineBuffer[30];
 static void heartbeat_handler(struct btstack_timer_source *ts)
 {
-    static int counter = 0;
-
-    // if (rfcomm_channel_id)
-    // {
-    //     sndebug_printf(lineBuffer, sizeof(lineBuffer), "BTstack counter %04u\n", ++counter);
-    //     debug_printf("%s", lineBuffer);
-
-    //     rfcomm_request_can_send_now_event(rfcomm_channel_id);
-    // }
+    if (rfcomm_channel_id)
+    {
+        rfcomm_request_can_send_now_event(rfcomm_channel_id);
+    }
 
     btstack_run_loop_set_timer(ts, HEARTBEAT_PERIOD_MS);
     btstack_run_loop_add_timer(ts);
@@ -231,12 +226,11 @@ static void send_from_ring(uint16_t cid, volatile ring_t *tx)
 
     rfcomm_send(cid, (uint8_t *)echo_buf, len);
 
-    /* Disabled -- the interrupt takes care of this */
-    // // schedule next send if still data left
-    // if (ring_count(tx))
-    // {
-    //     rfcomm_request_can_send_now_event(cid);
-    // }
+    // schedule next send if still data left
+    if (ring_count(tx))
+    {
+        rfcomm_request_can_send_now_event(cid);
+    }
 }
 
 /* LISTING_START(SppServerPacketHandler): SPP Server - Heartbeat Counter over RFCOMM */
@@ -324,6 +318,10 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             debug_printf("RFCOMM channel closed\n");
             rfcomm_channel_id = 0;
             system_config.bt_connected_state = CONNECTION_STATE_NEW_DISCONNECT;
+
+            // re-enable both discoverable (inquiry) and connectable (page) scans
+            gap_discoverable_control(1);
+            gap_connectable_control(1);
             break;
 
         default:
@@ -373,11 +371,18 @@ int btstack_main(int argc, const char *argv[])
     (void)argc;
     (void)argv;
 
+    one_shot_timer_setup();
     spp_service_setup();
 
     gap_discoverable_control(1);
-    gap_ssp_set_io_capability(SSP_IO_CAPABILITY_DISPLAY_YES_NO);
-    gap_set_local_name("SPP Counter 00:00:00:00:00:00");
+    gap_connectable_control(1);
+
+    // This will prompt for the device # and work with it
+    //    gap_ssp_set_io_capability(SSP_IO_CAPABILITY_DISPLAY_YES_NO);
+
+    gap_ssp_set_io_capability(SSP_IO_CAPABILITY_NO_INPUT_NO_OUTPUT);
+
+    gap_set_local_name("KIM1-1-BT 00:00:00:00:00:00");
 
     // turn on!
     hci_power_control(HCI_POWER_ON);
