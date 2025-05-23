@@ -98,7 +98,6 @@ static btstack_packet_callback_registration_t hci_event_callback_registration;
  * To preserve valuable RAM, the result could be stored as constant data inside the ROM.
  */
 
-/* LISTING_START(SPPSetup): SPP service setup */
 static void spp_service_setup(void)
 {
 
@@ -107,11 +106,6 @@ static void spp_service_setup(void)
     hci_add_event_handler(&hci_event_callback_registration);
 
     l2cap_init();
-
-#ifdef ENABLE_BLE
-    // Initialize LE Security Manager. Needed for cross-transport key derivation
-    sm_init();
-#endif
 
     rfcomm_init();
     rfcomm_register_service(packet_handler, RFCOMM_SERVER_CHANNEL, 0xffff); // reserved channel, mtu limited by l2cap
@@ -123,7 +117,6 @@ static void spp_service_setup(void)
     sdp_register_service(spp_service_buffer);
     debug_printf("SDP service record size: %u\n", de_get_len(spp_service_buffer));
 }
-/* LISTING_END */
 
 /* @section Periodic Timer Setup
  *
@@ -131,7 +124,6 @@ static void spp_service_setup(void)
  * and sends a text string with the counter value, as shown in Listing PeriodicCounter.
  */
 
-/* LISTING_START(PeriodicCounter): Periodic Counter */
 static btstack_timer_source_t heartbeat;
 
 static void heartbeat_handler(struct btstack_timer_source *ts)
@@ -140,13 +132,13 @@ static void heartbeat_handler(struct btstack_timer_source *ts)
     size_t chars_to_send = ring_count(&tx_ring);
 
     // 2) Did the user just press a key?
-    bool user_present = user_pressed_key_get();
+    bool user_pressed_key = user_pressed_key_get();
 
     // 3) Only if we’re actually connected…
     if (rfcomm_channel_id)
     {
         //  a) immediate send on user-key
-        if (user_present)
+        if (user_pressed_key)
         {
             rfcomm_request_can_send_now_event(rfcomm_channel_id);
             send_elapsed_ms = 0;
@@ -175,7 +167,6 @@ static void one_shot_timer_setup(void)
     btstack_run_loop_set_timer(&heartbeat, HEARTBEAT_PERIOD_MS);
     btstack_run_loop_add_timer(&heartbeat);
 }
-/* LISTING_END */
 
 /* @section Bluetooth Logic
  * @text The Bluetooth logic is implemented within the
@@ -213,16 +204,7 @@ static void one_shot_timer_setup(void)
  *
  * RFCOMM_EVENT_CAN_SEND_NOW indicates that it's possible to send an RFCOMM packet
  * on the rfcomm_cid that is include
-
  */
-
-static inline char swap_case_char(char c)
-{
-    /* ASCII – bit 5 distinguishes upper (0) from lower (1) */
-    if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
-        c ^= 0x20; /* flip bit 5 */
-    return c;
-}
 
 static void add_to_ring(volatile ring_t *rx_ring, char *line, size_t len)
 {
@@ -259,12 +241,10 @@ static void send_from_ring(uint16_t cid, volatile ring_t *tx)
     }
 }
 
-/* LISTING_START(SppServerPacketHandler): SPP Server - Heartbeat Counter over RFCOMM */
 static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size)
 {
     UNUSED(channel);
 
-    /* LISTING_PAUSE */
     bd_addr_t event_addr;
     uint8_t rfcomm_channel_nr;
     int i;
@@ -278,7 +258,6 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             one_shot_timer_setup();
             break;
 
-            /* LISTING_RESUME */
         case HCI_EVENT_PIN_CODE_REQUEST:
             // inform about pin code request
             debug_printf("Pin code request - using '0000'\n");
@@ -319,26 +298,9 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             }
             break;
         case RFCOMM_EVENT_CAN_SEND_NOW:
-#if 0
-            rfcomm_send(rfcomm_channel_id, (uint8_t *)lineBuffer, (uint16_t)strlen(lineBuffer));
-            break;
-#endif
             send_from_ring(rfcomm_channel_id, &tx_ring);
             break;
 
-#if 0
-
-            if (echo_len)
-            {
-                rfcomm_send(rfcomm_channel_id,
-                            (uint8_t *)echo_buf,
-                            echo_len);
-                echo_len = 0; /* buffer consumed              */
-            }
-            break;
-#endif
-
-            /* LISTING_PAUSE */
         case RFCOMM_EVENT_CHANNEL_CLOSED:
             debug_printf("RFCOMM channel closed\n");
             rfcomm_channel_id = 0;
@@ -355,40 +317,17 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
         break;
 
     case RFCOMM_DATA_PACKET:
-#if 0
-            debug_printf("RCV: '");
-            for (i=0;i<size;i++){
-                putchar(packet[i]);
-            }
-            debug_printf("'\n");
-            break;
-#endif
         add_to_ring(&rx_ring, packet, size);
 
         /* ask BTstack to give us a CAN-SEND-NOW when ready          */
         rfcomm_request_can_send_now_event(rfcomm_channel_id);
         break;
 
-#if 0
-        /* copy & convert to upper-case, clamp to buffer size        */
-        echo_len = (size > ECHO_BUF_SIZE) ? ECHO_BUF_SIZE : size;
-        for (uint16_t i = 0; i < echo_len; i++)
-        {
-            char ch = packet[i];
-            //  echo_buf[i] = (ch >= 'a' && ch <= 'z') ? (ch - 'a' + 'A') : ch;
-            echo_buf[i] = swap_case_char(ch);
-        }
-        /* ask BTstack to give us a CAN-SEND-NOW when ready          */
-        rfcomm_request_can_send_now_event(rfcomm_channel_id);
-        break;
-#endif
 
     default:
         break;
     }
-    /* LISTING_RESUME */
 }
-/* LISTING_END */
 
 int btstack_main(int argc, const char *argv[]);
 int btstack_main(int argc, const char *argv[])
@@ -415,4 +354,3 @@ int btstack_main(int argc, const char *argv[])
 
     return 0;
 }
-/* EXAMPLE_END */
