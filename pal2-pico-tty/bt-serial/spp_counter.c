@@ -34,12 +34,17 @@
  * contact@bluekitchen-gmbh.com
  *
  */
+#include <stddef.h> /* defines size_t */
+#include "pal-io.h"
+
+static uint16_t mtu;
+
+#define SEND_TIMEOUT_MS 750 // 500
+#define SEND_THRESHOLD_CHARS (mtu - 1)
+
+static uint32_t send_elapsed_ms = 0;
 
 #define BTSTACK_FILE__ "spp_counter.c"
-
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
-#include <stddef.h> /* defines size_t */
 
 #define ECHO_BUF_SIZE 512
 static char echo_buf[ECHO_BUF_SIZE];
@@ -69,7 +74,7 @@ static size_t echo_len = 0;
 #include "ring.h"
 #include "debug.h"
 
-//#define debug_printf(...) printf(__VA_ARGS__)
+// #define debug_printf(...) printf(__VA_ARGS__)
 #define RFCOMM_SERVER_CHANNEL 1
 #define HEARTBEAT_PERIOD_MS 100
 
@@ -128,13 +133,37 @@ static void spp_service_setup(void)
 
 /* LISTING_START(PeriodicCounter): Periodic Counter */
 static btstack_timer_source_t heartbeat;
+
 static void heartbeat_handler(struct btstack_timer_source *ts)
 {
+    // 1) Count how many bytes we’ve queued
+    size_t chars_to_send = ring_count(&tx_ring);
+
+    // 2) Did the user just press a key?
+    bool user_present = user_pressed_key_get();
+
+    // 3) Only if we’re actually connected…
     if (rfcomm_channel_id)
     {
-        rfcomm_request_can_send_now_event(rfcomm_channel_id);
+        //  a) immediate send on user-key
+        if (user_present)
+        {
+            rfcomm_request_can_send_now_event(rfcomm_channel_id);
+            send_elapsed_ms = 0;
+            user_pressed_key_set(false);
+        }
+        //  b) or send if threshold exceeded
+        else if (chars_to_send >= SEND_THRESHOLD_CHARS || send_elapsed_ms >= SEND_TIMEOUT_MS)
+        {
+            rfcomm_request_can_send_now_event(rfcomm_channel_id);
+            send_elapsed_ms = 0;
+        }
     }
 
+    // 4) advance our elapsed clock by the timer interval…
+    send_elapsed_ms += HEARTBEAT_PERIOD_MS;
+
+    // 5) re-arm the timer for the next tick
     btstack_run_loop_set_timer(ts, HEARTBEAT_PERIOD_MS);
     btstack_run_loop_add_timer(ts);
 }
@@ -211,9 +240,6 @@ static void send_from_ring(uint16_t cid, volatile ring_t *tx)
         return;
     }
 
-    // Why don't we just eat excess that that will be vanishing
-    ring_all_but(tx, 200);
-
     size_t avail = ring_count(tx);
     if (!avail)
         return;
@@ -241,7 +267,6 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
     /* LISTING_PAUSE */
     bd_addr_t event_addr;
     uint8_t rfcomm_channel_nr;
-    uint16_t mtu;
     int i;
 
     switch (packet_type)
