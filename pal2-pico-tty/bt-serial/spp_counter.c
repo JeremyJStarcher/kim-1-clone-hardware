@@ -69,7 +69,7 @@ static size_t echo_len = 0;
 #include "ring.h"
 #include "debug.h"
 
-#define debug_printf(...) printf(__VA_ARGS__)
+//#define debug_printf(...) printf(__VA_ARGS__)
 #define RFCOMM_SERVER_CHANNEL 1
 #define HEARTBEAT_PERIOD_MS 100
 

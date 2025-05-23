@@ -57,7 +57,7 @@ config_entry_t cfg_map[] = {
     {CH_DELAY_KEY_NAME, CT_UINT16, MENU_TYPE_NONE, &user_config.ch_delay, "Delay between characters in ms", ""},
     {LINE_DELAY_KEY_NAME, CT_UINT16, MENU_TYPE_NONE, &user_config.line_delay, "Delay between lines, in ms", ""},
     {USE_HARD_RESET_KEY_NAME, CT_BOOL, MENU_TYPE_LIST, &user_config.use_hard_reset, "Use the reset line", "true\tfalse"},
-    {TOGGLE_CHAR_KEY_NAME, CT_CHAR,MENU_TYPE_NONE, &user_config.toggle_char, "What character to use to toggle TTY mode", ""},
+    {TOGGLE_CHAR_KEY_NAME, CT_CHAR, MENU_TYPE_NONE, &user_config.toggle_char, "What character to use to toggle TTY mode", ""},
     {FORCE_UPPER_CASE_KEY_NAME, CT_BOOL, MENU_TYPE_LIST, &user_config.force_upper_case, "Force all characters to upper case", "true\tfalse"},
     {BS_TO_DEL_KEY_NAME, CT_BOOL, MENU_TYPE_LIST, &user_config.bs_to_del, "Send DEL (0x7F) instead of backspace (recommended)", "true\tfalse"},
 };

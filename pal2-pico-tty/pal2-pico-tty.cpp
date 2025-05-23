@@ -76,7 +76,7 @@ bool repeating_timer_callback(struct repeating_timer *t)
 void core1_main(void)
 {
     struct repeating_timer timer;
-   // add_repeating_timer_ms(100, repeating_timer_callback, NULL, &timer);
+    // add_repeating_timer_ms(100, repeating_timer_callback, NULL, &timer);
 
     pal_io_init();
 
@@ -319,6 +319,8 @@ void main_loop(ssd1306_tty_t *tty)
 
         if (ch_user > -1)
         {
+            user_pressed_key_set(true);
+
             if ((char)ch_user == user_config.toggle_char)
             {
                 u_reset_terminal();

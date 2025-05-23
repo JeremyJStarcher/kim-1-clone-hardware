@@ -86,7 +86,6 @@ extern "C"
     bool save_config_to_sd(void);
     void parse_config_line(char *line);
 
-
 #ifdef __cplusplus
 }
 #endif

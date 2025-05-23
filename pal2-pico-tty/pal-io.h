@@ -4,7 +4,7 @@
 extern "C"
 {
 #endif
-
+#include <stdatomic.h>
 #include "ssd1306.h"
 
     /**
@@ -141,6 +141,25 @@ extern "C"
      *
      */
     void u_banner(const char *fmt, ...);
+
+
+    /**
+     * @brief Set the state of the user pressed key.
+     *
+     * @param pressed The state to set (true or false).
+     * 
+     * @note This function uses atomic operations to ensure thread safety.
+     */
+    void user_pressed_key_set(bool pressed);
+    /**
+     * @brief Get the state of the user pressed key.
+     *
+     * @return The state of the user pressed key (true or false).
+     *
+     * @note This function uses atomic operations to ensure thread safety.
+     */
+    bool user_pressed_key_get(void);
+
 
 #ifdef __cplusplus
 }

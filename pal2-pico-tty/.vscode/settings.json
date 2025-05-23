@@ -47,7 +47,9 @@
         "config.h": "c",
         "pio.h": "c",
         "tty_switch_passthrough.pio.h": "c",
-        "buttons.h": "c"
+        "buttons.h": "c",
+        "stdint.h": "c",
+        "stdatomic.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

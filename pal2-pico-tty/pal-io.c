@@ -4,16 +4,14 @@
 #include "tty_switch_passthrough.pio.h"
 #include "stdio.h"
 #include "stdlib.h"
-#include "pico/mutex.h"
 #include <string.h>
+#include <stdatomic.h>
 
 #include "btstack.h"
 #include "config.h"
 #include "proj_hw.h"
 #include "kim-reply-parser.h"
 #include "ansi.h"
-
-static mutex_t print_mutex;
 
 #define RED ANSI_RED
 #define YELLOW ANSI_YELLOW
@@ -26,6 +24,18 @@ static const int EDGE_BREAK = 20;
 static const int WINDOW_US = (100 * 1000); // 100 ms
 static PIO pio;
 static int sm;
+
+atomic_bool user_pressed_key;
+
+void user_pressed_key_set(bool pressed)
+{
+    atomic_store(&user_pressed_key, pressed);
+}
+bool user_pressed_key_get(void)
+{
+    return atomic_load(&user_pressed_key);
+}
+
 
 static int change_input_char(int ch)
 {
@@ -392,7 +402,6 @@ void u_puts(const char *s)
 
 int u_printf(const char *fmt, ...)
 {
-    //    mutex_enter_blocking(&print_mutex);
     static char buf[256]; /* adjust to a sensible upper bound */
     va_list ap;
 
@@ -402,7 +411,6 @@ int u_printf(const char *fmt, ...)
 
     u_puts(buf);
     return len;
-    //    mutex_exit(&print_mutex);
 }
 
 void u_reset_terminal()
@@ -412,7 +420,7 @@ void u_reset_terminal()
 
 void pal_io_init(void)
 {
-    mutex_init(&print_mutex);
+    atomic_init(&user_pressed_key, false); //jjz
 }
 
 void u_banner(const char *fmt, ...)
