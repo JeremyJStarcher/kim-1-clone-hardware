@@ -1,0 +1,46 @@
+#!/bin/bash
+
+set -euo pipefail
+
+PROFILE="${1:-}"
+MINIRC="$HOME/.minirc.$PROFILE"
+
+if [[ -z "$PROFILE" ]]; then
+    echo "Usage: $0 <minicom-profile>"
+    exit 1
+fi
+
+if [[ ! -f "$MINIRC" ]]; then
+    echo "Error: minicom config '$MINIRC' not found."
+    exit 1
+fi
+
+# Create a temporary log file to capture xterm output
+LOGFILE=$(mktemp /tmp/minicom-log.XXXXXX)
+
+COLUMNS=80
+ROWS=25
+FONT_SIZE=12
+
+
+# Launch xterm with minicom, logging all output
+xterm \
+    -geometry ${COLUMNS}x${ROWS} \
+    -fa "Monospace" \
+    -fs ${FONT_SIZE} \
+    -e bash -c "minicom $PROFILE 2>&1 | tee \"$LOGFILE\"; read -p 'Press enter to close...'" \
+    &
+
+
+
+# Wait for xterm to exit
+wait $!
+
+# Display output if any
+if [[ -s "$LOGFILE" ]]; then
+    echo "---- Minicom output ----"
+    cat "$LOGFILE"
+fi
+
+# Clean up
+rm -f "$LOGFILE"

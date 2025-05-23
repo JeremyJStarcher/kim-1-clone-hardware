@@ -36,7 +36,6 @@ bool user_pressed_key_get(void)
     return atomic_load(&user_pressed_key);
 }
 
-
 static int change_input_char(int ch)
 {
     if (user_config.force_upper_case)
@@ -420,7 +419,7 @@ void u_reset_terminal()
 
 void pal_io_init(void)
 {
-    atomic_init(&user_pressed_key, false); //jjz
+    atomic_init(&user_pressed_key, false); // jjz
 }
 
 void u_banner(const char *fmt, ...)
@@ -438,5 +437,16 @@ void u_banner(const char *fmt, ...)
         u_putc('_');
     }
 
+    u_printf(ANSI_RESET "\n");
+
+    for (int i = 0; i < 80; i++)
+    {
+        u_putc((i + 1) / 10 + '0');
+    }
+    u_printf(ANSI_RESET "\n");
+    for (int i = 0; i < 80; i++)
+    {
+        u_putc((i + 1) % 10 + '0');
+    }
     u_printf(ANSI_RESET "\n");
 }
