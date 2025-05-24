@@ -50,6 +50,8 @@ static uint32_t send_elapsed_ms = 0;
 static char echo_buf[ECHO_BUF_SIZE];
 static size_t echo_len = 0;
 
+#define KEEP_ALIVE_CHAR 27
+
 // *****************************************************************************
 /* EXAMPLE_START(spp_counter): SPP Server - Heartbeat Counter over RFCOMM
  *
@@ -147,6 +149,11 @@ static void heartbeat_handler(struct btstack_timer_source *ts)
         //  b) or send if threshold exceeded
         else if (chars_to_send >= SEND_THRESHOLD_CHARS || send_elapsed_ms >= SEND_TIMEOUT_MS)
         {
+            // Keep alive, avoid timeouts.
+            if (chars_to_send == 0)
+            {
+                ring_push(&tx_ring, KEEP_ALIVE_CHAR);
+            }
             rfcomm_request_can_send_now_event(rfcomm_channel_id);
             send_elapsed_ms = 0;
         }
@@ -254,7 +261,15 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
     case HCI_EVENT_PACKET:
         switch (hci_event_packet_get_type(packet))
         {
+        case HCI_EVENT_DISCONNECTION_COMPLETE:
+            printf(" Disconnect reason(0x08 and 0x13 are common) %02x\n", packet[5]);
+            break;
         case HCI_STATE_WORKING:
+            // avoid timeouts, hopefully?
+            // jjz
+            uint16_t con_handle = rfcomm_event_channel_opened_get_con_handle(packet);
+            hci_send_cmd(&hci_write_link_policy_settings, con_handle, 0x0001); // disable sniff, hold, park
+
             one_shot_timer_setup();
             break;
 
@@ -322,7 +337,6 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
         /* ask BTstack to give us a CAN-SEND-NOW when ready          */
         rfcomm_request_can_send_now_event(rfcomm_channel_id);
         break;
-
 
     default:
         break;
