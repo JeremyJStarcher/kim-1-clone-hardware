@@ -7,7 +7,6 @@
 #include <string.h>
 #include <stdatomic.h>
 
-#include "btstack.h"
 #include "config.h"
 #include "proj_hw.h"
 #include "kim-reply-parser.h"

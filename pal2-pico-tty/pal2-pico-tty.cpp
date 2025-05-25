@@ -8,9 +8,12 @@
 #include "hardware/uart.h"
 #include "pico/binary_info.h"
 #include "malloc.h"
-#include "bt_main.h"
 #include "pico/multicore.h"
+
+#ifdef USE_BLUETOOTH
+#include "bt_main.h"
 #include "btstack.h"
+#endif
 
 #include "sd-card/sd-card.h"
 #include "proj_hw.h"
@@ -54,6 +57,7 @@ bool wait_for_usb_connection(uint timeout_ms)
     return true; // USB connected
 }
 
+#if 0
 bool repeating_timer_callback(struct repeating_timer *t)
 {
     // Alright, I had to put the request on a timer to allow bytes
@@ -72,6 +76,7 @@ bool repeating_timer_callback(struct repeating_timer *t)
 
     return true; // Keep repeating
 }
+#endif
 
 void core1_main(void)
 {
@@ -188,7 +193,10 @@ int main()
     // Example to turn on the Pico W LED
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
 
+#ifdef USE_BLUETOOTH
     bt_main();
+#endif
+
     while (false)
     {
         tight_loop_contents();
