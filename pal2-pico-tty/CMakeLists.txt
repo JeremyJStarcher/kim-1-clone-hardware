@@ -85,7 +85,6 @@ set(COMMON_INCLUDES
     hardware_spi
     hardware_i2c
     hardware_pio
-    pico_cyw43_arch_none
     hardware_adc
     hardware_uart
     pico_multicore          # core-launch, FIFO, locks
@@ -109,6 +108,7 @@ target_compile_definitions(pal-interface-bluetooth PRIVATE
 )
 target_link_libraries(pal-interface-bluetooth PRIVATE
     ${COMMON_LIBS}
+    pico_cyw43_arch_none
     pico_btstack_classic
     pico_btstack_cyw43
 )
@@ -125,8 +125,15 @@ add_executable(pal-interface-telnet
     # no bt-serial sources here
 )
 
+#if(TARGET pal-interface-telnet)
+    add_subdirectory(src/lib/pico-telnetd)
+#endif()
+
 target_include_directories(pal-interface-telnet PRIVATE
     ${COMMON_INCLUDES}
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/src/lib/pico-telnetd/include
+
 )
 target_compile_definitions(pal-interface-telnet PRIVATE
     PICO_MALLOC_PANIC=0
@@ -134,7 +141,8 @@ target_compile_definitions(pal-interface-telnet PRIVATE
 )
 target_link_libraries(pal-interface-telnet PRIVATE
     ${COMMON_LIBS}
-    # add any telnet‐specific libs here, e.g. pico_lwip or pico_cyw43_arch_none
+   pico_cyw43_arch_lwip_threadsafe_background
+   pico-telnetd-lib   # adds pico-telnetd’s sources & headers
 )
 
 configure_pio_for(pal-interface-telnet)
@@ -154,10 +162,11 @@ target_include_directories(pal-interface-usb PRIVATE
 )
 target_compile_definitions(pal-interface-usb PRIVATE
     PICO_MALLOC_PANIC=0
-    USE_TELNET
+    USE_USB
 )
 target_link_libraries(pal-interface-usb PRIVATE
     ${COMMON_LIBS}
+    pico_cyw43_arch_none
     # add any telnet‐specific libs here, e.g. pico_lwip or pico_cyw43_arch_none
 )
 
