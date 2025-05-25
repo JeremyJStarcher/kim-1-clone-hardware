@@ -15,7 +15,7 @@
 #include "btstack.h"
 #endif
 
-#include "sd-card/sd-card.h"
+#include "sd-card.h"
 #include "proj_hw.h"
 #include "buttons.h"
 #include "blink.pio.h"
@@ -314,6 +314,8 @@ void check_connections(ssd1306_tty_t *tty)
 
 void main_loop(ssd1306_tty_t *tty)
 {
+    printf("MAIN LOOP\n");
+
     reset_pal(tty);
     show_default_text(tty);
     u_reset_terminal();

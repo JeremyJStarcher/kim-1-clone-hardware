@@ -139,9 +139,13 @@ static void shutdown_switch_mirror(PIO pio, uint sm)
 static void reset_pal_inner(ssd1306_tty_t *tty2)
 {
     /* Assert reset (active‑low) for 100 ms */
+        printf("CP1.4\n");
+
     gpio_set_dir(PAL_RESET_GPIO, GPIO_OUT);
     gpio_put(PAL_RESET_GPIO, 0);
     sleep_ms(100);
+
+        printf("CP1.5\n");
 
     int edges1 = get_edges(TTY_SWITCH1_INPUT, WINDOW_US);
     ssd1306_tty_printf(tty2, "Reset Edges: %d\n", edges1);
@@ -156,9 +160,11 @@ static void reset_pal_inner(ssd1306_tty_t *tty2)
     //     ssd1306_tty_printf(tty2, "Reset Edges: %d\n", edges1);
     //     ssd1306_tty_show(tty2);
     // }
+    printf("CP1.6\n");
 
     sleep_ms(100);
     gpio_set_dir(PAL_RESET_GPIO, GPIO_IN); /* release */
+    printf("CP1.7\n");
 
     // while (edges1 < EDGE_BREAK)
     // {
@@ -174,6 +180,7 @@ static void reset_pal_inner(ssd1306_tty_t *tty2)
 
 void reset_pal(ssd1306_tty_t *tty)
 {
+    printf("CP1.1\n");
     ssd1306_tty_t tty2;
     ssd1306_t *disp = tty->ssd1306;
 
@@ -184,11 +191,14 @@ void reset_pal(ssd1306_tty_t *tty)
     //     shutdown_switch_mirror(pio, (uint)sm);
     // }
 
+    printf("CP1.2\n");
     ssd1306_init_tty(tty->ssd1306, &tty2, get_font());
 
     ssd1306_tty_cls(&tty2);
     ssd1306_tty_puts(&tty2, "PAL RESET\n");
     ssd1306_tty_show(&tty2);
+
+        printf("CP1.3\n");
 
     reset_pal_inner(&tty2);
 

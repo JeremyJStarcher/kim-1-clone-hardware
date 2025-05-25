@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "./sd-card/pico_fatfs/fatfs/ff.h"
+#include "pico_fatfs/fatfs/ff.h"
 #include "config.h"
 
 #define BAUD_KEY_NAME "baud"

@@ -11,7 +11,7 @@
 int btstack_main(int argc, const char *argv[]);
 
 void bt_main()
-{
+{   
     // run the app
     btstack_main(0, NULL);
     btstack_run_loop_execute();

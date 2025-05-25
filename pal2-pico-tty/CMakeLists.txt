@@ -58,26 +58,26 @@ endfunction()
 
 # ─── Common source files & include dirs ──────────────────────────
 set(COMMON_SRCS
-    pal2-pico-tty.cpp
-    sd-card/sd-card.c
-    sd-card/pico_fatfs/fatfs/ff.c
-    sd-card/pico_fatfs/fatfs/ffsystem.c
-    sd-card/pico_fatfs/tf_card.c
-    sd-card/pico_fatfs/fatfs/ffunicode.c
-    pico-ssd1306/ssd1306.c
-    proj_hw.c
-    pal-io.c
-    buttons.c
-    config.c
-    kim-reply-parser.c
-    edit-settings.c
+    src/pal2-pico-tty.cpp
+    src/lib/sd-card/sd-card.c
+    src/lib/sd-card/pico_fatfs/fatfs/ff.c
+    src/lib/sd-card/pico_fatfs/fatfs/ffsystem.c
+    src/lib/sd-card/pico_fatfs/tf_card.c
+    src/lib/sd-card/pico_fatfs/fatfs/ffunicode.c
+    src/lib/pico-ssd1306/ssd1306.c
+    src/proj_hw.c
+    src/pal-io.c
+    src/buttons.c
+    src/config.c
+    src/kim-reply-parser.c
+    src/edit-settings.c
 )
 
 set(COMMON_INCLUDES
-    ${CMAKE_CURRENT_LIST_DIR}
-    pico-ssd1306
-    sd-card
-    sd-card/pico_fatfs
+    ${CMAKE_CURRENT_LIST_DIR}/src
+    src/lib/pico-ssd1306
+    src/lib/sd-card
+    src/lib/sd-card/pico_fatfs
 )
 
  set(COMMON_LIBS
@@ -95,13 +95,13 @@ set(COMMON_INCLUDES
 # ─── 1) Bluetooth variant ────────────────────────────────────────
 add_executable(pal-interface-bluetooth
     ${COMMON_SRCS}
-    bt-serial/bt_main.c
-    bt-serial/spp_counter.c
+    src/lib/bt-serial/bt_main.c
+    src/lib/bt-serial/spp_counter.c
 )
 
 target_include_directories(pal-interface-bluetooth PRIVATE
     ${COMMON_INCLUDES}
-    bt-serial
+    src/lib/bt-serial
 )
 target_compile_definitions(pal-interface-bluetooth PRIVATE
     PICO_MALLOC_PANIC=0

@@ -7,7 +7,7 @@
 
 #include "buttons.h"
 #include "ssd1306.h"
-#include "sd-card/sd-card.h"
+#include "sd-card.h"
 #include "proj_hw.h"
 #include "debug.h"
 #include "pal-io.h"
