@@ -43,6 +43,7 @@ static uint16_t mtu;
 #define SEND_THRESHOLD_CHARS (mtu - 1)
 
 static uint32_t send_elapsed_ms = 0;
+static uint32_t l2cap_elapsed_ms = 0;
 
 #define BTSTACK_FILE__ "spp_counter.c"
 
@@ -50,7 +51,7 @@ static uint32_t send_elapsed_ms = 0;
 static char echo_buf[ECHO_BUF_SIZE];
 static size_t echo_len = 0;
 
-#define KEEP_ALIVE_CHAR 27
+#define KEEP_ALIVE_CHAR (0x02)
 
 // *****************************************************************************
 /* EXAMPLE_START(spp_counter): SPP Server - Heartbeat Counter over RFCOMM
@@ -85,6 +86,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
 static uint16_t rfcomm_channel_id;
 static uint8_t spp_service_buffer[150];
 static btstack_packet_callback_registration_t hci_event_callback_registration;
+static uint16_t last_con_handle = HCI_CON_HANDLE_INVALID;
 
 /* @section SPP Service Setup
  *s
@@ -159,8 +161,17 @@ static void heartbeat_handler(struct btstack_timer_source *ts)
         }
     }
 
+    // L2CAP ping to keep link active
+    // L2CAP ping only every 5 s of inactivity
+    if (last_con_handle != HCI_CON_HANDLE_INVALID && l2cap_elapsed_ms >= 5000u)
+    {
+        l2cap_send_echo_request(last_con_handle, NULL, 0);
+        l2cap_elapsed_ms = 0;
+    }
+
     // 4) advance our elapsed clock by the timer interval…
     send_elapsed_ms += HEARTBEAT_PERIOD_MS;
+    l2cap_elapsed_ms += HEARTBEAT_PERIOD_MS;
 
     // 5) re-arm the timer for the next tick
     btstack_run_loop_set_timer(ts, HEARTBEAT_PERIOD_MS);
@@ -261,16 +272,24 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
     case HCI_EVENT_PACKET:
         switch (hci_event_packet_get_type(packet))
         {
+        case BTSTACK_EVENT_STATE:
+            if (btstack_event_state_get_state(packet) == HCI_STATE_WORKING)
+            {
+                uint16_t con_handle = rfcomm_event_channel_opened_get_con_handle(packet);
+                hci_send_cmd(&hci_write_link_policy_settings, con_handle, 0x0000); // disable sniff, hold, park
+
+                gap_discoverable_control(1);
+                gap_connectable_control(1);
+
+                one_shot_timer_setup();
+            }
+            break;
+        }
+
+        switch (hci_event_packet_get_type(packet))
+        {
         case HCI_EVENT_DISCONNECTION_COMPLETE:
             printf(" Disconnect reason(0x08 and 0x13 are common) %02x\n", packet[5]);
-            break;
-        case HCI_STATE_WORKING:
-            // avoid timeouts, hopefully?
-            // jjz
-            uint16_t con_handle = rfcomm_event_channel_opened_get_con_handle(packet);
-            hci_send_cmd(&hci_write_link_policy_settings, con_handle, 0x0001); // disable sniff, hold, park
-
-            one_shot_timer_setup();
             break;
 
         case HCI_EVENT_PIN_CODE_REQUEST:
@@ -291,6 +310,12 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             rfcomm_channel_nr = rfcomm_event_incoming_connection_get_server_channel(packet);
             rfcomm_channel_id = rfcomm_event_incoming_connection_get_rfcomm_cid(packet);
 
+            last_con_handle = rfcomm_event_channel_opened_get_con_handle(packet);
+            // DOCUMENT
+            hci_send_cmd(&hci_write_link_policy_settings, last_con_handle, 0x0001);
+            hci_send_cmd(&hci_write_link_supervision_timeout, last_con_handle, 0xEA60);
+
+            rfcomm_request_can_send_now_event(rfcomm_channel_id);
             debug_printf("RFCOMM channel %u requested for %s\n", rfcomm_channel_nr, bd_addr_to_str(event_addr));
             rfcomm_accept_connection(rfcomm_channel_id);
             break;
@@ -306,6 +331,11 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
                 mtu = rfcomm_event_channel_opened_get_max_frame_size(packet);
 
                 // Starts sending right away without waiting for a keystroke from the receiver.
+                ring_push(&tx_ring, KEEP_ALIVE_CHAR);
+                ring_push(&tx_ring, '\r');
+                ring_push(&tx_ring, '\r');
+                ring_push(&tx_ring, '\r');
+
                 rfcomm_request_can_send_now_event(rfcomm_channel_id); // kick-start TX
                 debug_printf("RFCOMM channel open succeeded. New RFCOMM Channel ID %u, max frame size %u\n", rfcomm_channel_id, mtu);
                 system_config.rfcomm_channel_id = rfcomm_channel_id;
@@ -319,6 +349,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
         case RFCOMM_EVENT_CHANNEL_CLOSED:
             debug_printf("RFCOMM channel closed\n");
             rfcomm_channel_id = 0;
+            last_con_handle = HCI_CON_HANDLE_INVALID;
             system_config.bt_connected_state = CONNECTION_STATE_NEW_DISCONNECT;
 
             // re-enable both discoverable (inquiry) and connectable (page) scans
@@ -333,8 +364,6 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
 
     case RFCOMM_DATA_PACKET:
         add_to_ring(&rx_ring, packet, size);
-
-        /* ask BTstack to give us a CAN-SEND-NOW when ready          */
         rfcomm_request_can_send_now_event(rfcomm_channel_id);
         break;
 
@@ -349,18 +378,17 @@ int btstack_main(int argc, const char *argv[])
     (void)argc;
     (void)argv;
 
-    one_shot_timer_setup();
     spp_service_setup();
 
-    gap_discoverable_control(1);
-    gap_connectable_control(1);
-
     // This will prompt for the device # and work with it
-    //    gap_ssp_set_io_capability(SSP_IO_CAPABILITY_DISPLAY_YES_NO);
+    gap_ssp_set_io_capability(SSP_IO_CAPABILITY_DISPLAY_YES_NO);
 
-    gap_ssp_set_io_capability(SSP_IO_CAPABILITY_NO_INPUT_NO_OUTPUT);
+    // gap_ssp_set_io_capability(SSP_IO_CAPABILITY_NO_INPUT_NO_OUTPUT);
 
     gap_set_local_name("KIM1-1-BT 00:00:00:00:00:00");
+
+    // 0x020104 = Major class: 0x02 (PHONE), Minor: 0x01 (CELLULAR), Service: 0x04 (OBJECT_TRANSFER)
+    gap_set_class_of_device(0x020104);
 
     // turn on!
     hci_power_control(HCI_POWER_ON);
