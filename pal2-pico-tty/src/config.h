@@ -79,8 +79,8 @@ extern "C"
     extern config_entry_t cfg_map[];
     extern size_t cfg_map_len;
 
-    extern volatile ring_t tx_ring; /* producer: core-1, consumer: core-0 */
-    extern volatile ring_t rx_ring; /* producer: core-0, consumer: core-1 */
+    extern volatile bt_ring_t bt_tx_ring; /* producer: core-1, consumer: core-0 */
+    extern volatile bt_ring_t bt_rx_ring; /* producer: core-0, consumer: core-1 */
 
     bool load_config_from_sd(void);
     bool save_config_to_sd(void);

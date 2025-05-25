@@ -133,7 +133,7 @@ static btstack_timer_source_t heartbeat;
 static void heartbeat_handler(struct btstack_timer_source *ts)
 {
     // 1) Count how many bytes we’ve queued
-    size_t chars_to_send = ring_count(&tx_ring);
+    size_t chars_to_send = bt_ring_count(&bt_tx_ring);
 
     // 2) Did the user just press a key?
     bool user_pressed_key = user_pressed_key_get();
@@ -154,7 +154,7 @@ static void heartbeat_handler(struct btstack_timer_source *ts)
             // Keep alive, avoid timeouts.
             if (chars_to_send == 0)
             {
-                ring_push(&tx_ring, KEEP_ALIVE_CHAR);
+                bt_ring_push(&bt_tx_ring, KEEP_ALIVE_CHAR);
             }
             rfcomm_request_can_send_now_event(rfcomm_channel_id);
             send_elapsed_ms = 0;
@@ -224,36 +224,36 @@ static void one_shot_timer_setup(void)
  * on the rfcomm_cid that is include
  */
 
-static void add_to_ring(volatile ring_t *rx_ring, char *line, size_t len)
+static void add_to_ring(volatile bt_ring_t *rx_ring, char *line, size_t len)
 {
     for (size_t i = 0; i < len; ++i)
     {
         char ch = line[i];
-        ring_push(rx_ring, ch);
+        bt_ring_push(rx_ring, ch);
     }
 }
 
-static void send_from_ring(uint16_t cid, volatile ring_t *tx)
+static void send_from_ring(uint16_t cid, volatile bt_ring_t *tx)
 {
     if (!rfcomm_can_send_packet_now(cid))
     {
         return;
     }
 
-    size_t avail = ring_count(tx);
+    size_t avail = bt_ring_count(tx);
     if (!avail)
         return;
 
     size_t len = MIN(avail, ECHO_BUF_SIZE - 1);
     for (size_t i = 0; i < len; i++)
     {
-        ring_pop(tx, &echo_buf[i]);
+        bt_ring_pop(tx, &echo_buf[i]);
     }
 
     rfcomm_send(cid, (uint8_t *)echo_buf, len);
 
     // schedule next send if still data left
-    if (ring_count(tx))
+    if (bt_ring_count(tx))
     {
         rfcomm_request_can_send_now_event(cid);
     }
@@ -331,10 +331,10 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
                 mtu = rfcomm_event_channel_opened_get_max_frame_size(packet);
 
                 // Starts sending right away without waiting for a keystroke from the receiver.
-                ring_push(&tx_ring, KEEP_ALIVE_CHAR);
-                ring_push(&tx_ring, '\r');
-                ring_push(&tx_ring, '\r');
-                ring_push(&tx_ring, '\r');
+                bt_ring_push(&bt_tx_ring, KEEP_ALIVE_CHAR);
+                bt_ring_push(&bt_tx_ring, '\r');
+                bt_ring_push(&bt_tx_ring, '\r');
+                bt_ring_push(&bt_tx_ring, '\r');
 
                 rfcomm_request_can_send_now_event(rfcomm_channel_id); // kick-start TX
                 debug_printf("RFCOMM channel open succeeded. New RFCOMM Channel ID %u, max frame size %u\n", rfcomm_channel_id, mtu);
@@ -343,7 +343,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             }
             break;
         case RFCOMM_EVENT_CAN_SEND_NOW:
-            send_from_ring(rfcomm_channel_id, &tx_ring);
+            send_from_ring(rfcomm_channel_id, &bt_tx_ring);
             break;
 
         case RFCOMM_EVENT_CHANNEL_CLOSED:
@@ -363,7 +363,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
         break;
 
     case RFCOMM_DATA_PACKET:
-        add_to_ring(&rx_ring, packet, size);
+        add_to_ring(&bt_rx_ring, packet, size);
         rfcomm_request_can_send_now_event(rfcomm_channel_id);
         break;
 

@@ -2,8 +2,8 @@
 set -euo pipefail
 
 
-#UF2_FILE=./build/pal-interface-bluetooth.uf2
-UF2_FILE=./build/pal-interface-telnet.uf2
+UF2_FILE=./build/pal-interface-bluetooth.uf2
+#UF2_FILE=./build/pal-interface-telnet.uf2
 #UF2_FILE=./build/pal-interface-usb.uf2
 
 

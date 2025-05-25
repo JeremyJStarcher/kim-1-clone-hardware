@@ -30,8 +30,8 @@
 #define MAX_LINE_LEN 128
 #endif
 
-volatile ring_t tx_ring;
-volatile ring_t rx_ring;
+volatile bt_ring_t bt_tx_ring;
+volatile bt_ring_t bt_rx_ring;
 
 pal_config_t system_config = {
     .usb_connected = false,

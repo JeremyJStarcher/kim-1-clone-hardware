@@ -4,8 +4,6 @@
 extern "C"
 {
 #endif
-#ifndef RING_SIMPLE_H
-#define RING_SIMPLE_H
 
 #include <stdint.h>
 #include <stddef.h>
@@ -32,21 +30,21 @@ extern "C"
         volatile size_t head; /* written by producer only     */
         uint8_t buf[RING_CAPACITY];
         volatile size_t tail; /* written by consumer only     */
-    } ring_t;
+    } bt_ring_t;
 
     /* ---- API ------------------------------------------------------------ */
-    static inline void ring_init(volatile ring_t *r)
+    static inline void bt_ring_init(volatile bt_ring_t *r)
     {
         r->head = r->tail = 0;
     }
 
-    static inline bool ring_is_empty(volatile ring_t *r)
+    static inline bool bt_ring_is_empty(volatile bt_ring_t *r)
     {
         return r->head == r->tail;
     }
 
     /* producer – returns 0 on success, −1 if full */
-    static inline int ring_push(volatile ring_t *r, uint8_t byte)
+    static inline int bt_ring_push(volatile bt_ring_t *r, uint8_t byte)
     {
         size_t head = r->head;
         size_t tail = r->tail;
@@ -61,7 +59,7 @@ extern "C"
     }
 
     /* consumer – returns 0 on success, −1 if empty */
-    static inline int ring_pop(volatile ring_t *r, uint8_t *out)
+    static inline int bt_ring_pop(volatile bt_ring_t *r, uint8_t *out)
     {
         size_t tail = r->tail;
         size_t head = r->head;
@@ -76,29 +74,15 @@ extern "C"
     }
 
     /* optional helpers */
-    static inline size_t ring_count(const volatile ring_t *r)
+    static inline size_t bt_ring_count(const volatile bt_ring_t *r)
     {
         return r->head - r->tail;
     }
-    static inline size_t ring_space(const volatile ring_t *r)
+    static inline size_t ring_space(const volatile bt_ring_t *r)
     {
-        return RING_CAPACITY - ring_count(r);
+        return RING_CAPACITY - bt_ring_count(r);
     }
 
-    static inline void ring_all_but(volatile ring_t *r, size_t n)
-    {
-        if (ring_count(r) < n)
-        {
-            return ;
-        }
-        size_t tail = r->tail;
-        size_t head = r->head;
-
-        RING_BARRIER(); /* commit before freeing slot */
-        r->tail = tail + n;
-    }
-
-#endif /* RING_SIMPLE_H */
 
 #ifdef __cplusplus
 }

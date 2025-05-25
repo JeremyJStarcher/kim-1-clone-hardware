@@ -344,10 +344,10 @@ int user_getchar()
         char_out = ch;
     }
 
-    if (ring_count(&rx_ring) > 0)
+    if (bt_ring_count(&bt_rx_ring) > 0)
     {
         char ch;
-        ring_pop(&rx_ring, &ch);
+        bt_ring_pop(&bt_rx_ring, &ch);
         char_out = ch;
     }
 
@@ -382,7 +382,7 @@ void u_putc(char ch_pal)
     }
     if (system_config.rfcomm_channel_id > -1)
     {
-        ring_push(&tx_ring, (char)ch_pal);
+        bt_ring_push(&bt_tx_ring, (char)ch_pal);
         // rfcomm_request_can_send_now_event handled by the interrupt
     }
 

@@ -253,8 +253,8 @@ int main()
 {
     stdio_init_all();
 
-    ring_init(&tx_ring);
-    ring_init(&rx_ring);
+    bt_ring_init(&bt_tx_ring);
+    bt_ring_init(&bt_rx_ring);
 
     bool connected = wait_for_usb_connection(1000);
 
@@ -266,6 +266,7 @@ int main()
         return -1;
     }
 #endif
+
 
 #ifdef USE_TELNET
 
