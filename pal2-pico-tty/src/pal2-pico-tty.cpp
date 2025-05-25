@@ -314,8 +314,6 @@ void check_connections(ssd1306_tty_t *tty)
 
 void main_loop(ssd1306_tty_t *tty)
 {
-    printf("MAIN LOOP\n");
-
     reset_pal(tty);
     show_default_text(tty);
     u_reset_terminal();
