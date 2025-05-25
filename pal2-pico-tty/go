@@ -1,7 +1,13 @@
 #!/bin/bash
 set -euo pipefail
 
-UF2_FILE=./build/pal2-pico-tty.uf2
+
+#UF2_FILE=./build/pal-interface-bluetooth.uf2
+#UF2_FILE=./build/pal-interface-telnet.uf2
+UF2_FILE=./build/pal-interface-usb.uf2
+
+
+
 TIMEOUT=100       # seconds to wait for RPI-RP2 mount
 USER_MEDIA_PATHS=(
     "/media/$USER"

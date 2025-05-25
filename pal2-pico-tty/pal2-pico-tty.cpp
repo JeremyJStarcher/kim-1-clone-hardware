@@ -197,9 +197,9 @@ int main()
     bt_main();
 #endif
 
-    while (false)
+    while (true)
     {
-        tight_loop_contents();
+        sleep_ms(1 * 1000);
     }
 }
 

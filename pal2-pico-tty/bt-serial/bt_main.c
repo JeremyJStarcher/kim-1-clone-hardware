@@ -12,17 +12,6 @@ int btstack_main(int argc, const char *argv[]);
 
 void bt_main()
 {
-
-#if 0
-    stdio_init_all();
-
-    // initialize CYW43 driver
-    if (cyw43_arch_init()) {
-        printf("cyw43_arch_init() failed.\n");
-        return -1;
-    }
-#endif
-
     // run the app
     btstack_main(0, NULL);
     btstack_run_loop_execute();

@@ -46,6 +46,14 @@ project(pal-interface C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+function(configure_pio_for target)
+  pico_generate_pio_header(
+    ${target}
+    ${CMAKE_CURRENT_LIST_DIR}/blink.pio
+    ${CMAKE_CURRENT_LIST_DIR}/tty_switch_passthrough.pio
+  )
+endfunction()
+
 
 
 # ─── Common source files & include dirs ──────────────────────────
@@ -104,11 +112,9 @@ target_link_libraries(pal-interface-bluetooth PRIVATE
     pico_btstack_classic
     pico_btstack_cyw43
 )
-pico_generate_pio_header(
-    pal-interface-bluetooth
-    ${CMAKE_CURRENT_LIST_DIR}/blink.pio
-    ${CMAKE_CURRENT_LIST_DIR}/tty_switch_passthrough.pio
-)
+
+configure_pio_for(pal-interface-bluetooth)
+
 pico_enable_stdio_uart(pal-interface-bluetooth 0)
 pico_enable_stdio_usb(pal-interface-bluetooth 1)
 pico_add_extra_outputs(pal-interface-bluetooth)
@@ -130,11 +136,33 @@ target_link_libraries(pal-interface-telnet PRIVATE
     ${COMMON_LIBS}
     # add any telnet‐specific libs here, e.g. pico_lwip or pico_cyw43_arch_none
 )
-pico_generate_pio_header(
-    pal-interface-telnet
-    ${CMAKE_CURRENT_LIST_DIR}/blink.pio
-    ${CMAKE_CURRENT_LIST_DIR}/tty_switch_passthrough.pio
-)
+
+configure_pio_for(pal-interface-telnet)
+
 pico_enable_stdio_uart(pal-interface-telnet 0)
 pico_enable_stdio_usb(pal-interface-telnet 1)
 pico_add_extra_outputs(pal-interface-telnet)
+
+# ─── 3) USB variant ───────────────────────────────────────────
+add_executable(pal-interface-usb
+    ${COMMON_SRCS}
+    # no bt-serial sources here
+)
+
+target_include_directories(pal-interface-usb PRIVATE
+    ${COMMON_INCLUDES}
+)
+target_compile_definitions(pal-interface-usb PRIVATE
+    PICO_MALLOC_PANIC=0
+    USE_TELNET
+)
+target_link_libraries(pal-interface-usb PRIVATE
+    ${COMMON_LIBS}
+    # add any telnet‐specific libs here, e.g. pico_lwip or pico_cyw43_arch_none
+)
+
+configure_pio_for(pal-interface-usb)
+
+pico_enable_stdio_uart(pal-interface-usb 0)
+pico_enable_stdio_usb(pal-interface-usb 1)
+pico_add_extra_outputs(pal-interface-usb)
