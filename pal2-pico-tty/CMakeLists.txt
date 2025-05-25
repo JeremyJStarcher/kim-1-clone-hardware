@@ -49,8 +49,8 @@ pico_sdk_init()
 function(configure_pio_for target)
   pico_generate_pio_header(
     ${target}
-    ${CMAKE_CURRENT_LIST_DIR}/blink.pio
-    ${CMAKE_CURRENT_LIST_DIR}/tty_switch_passthrough.pio
+    ${CMAKE_CURRENT_LIST_DIR}/src/pio/blink.pio
+    ${CMAKE_CURRENT_LIST_DIR}/src/pio/tty_switch_passthrough.pio
   )
 endfunction()
 
