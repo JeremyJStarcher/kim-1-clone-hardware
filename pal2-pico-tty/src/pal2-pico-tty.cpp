@@ -9,6 +9,20 @@
 #include "pico/binary_info.h"
 #include "malloc.h"
 #include "pico/multicore.h"
+#include "pico/cyw43_arch.h"
+#include "hardware/watchdog.h"
+
+#include "sd-card.h"
+#include "proj_hw.h"
+#include "buttons.h"
+#include "blink.pio.h"
+#include "ssd1306.h"
+#include "proj_hw.h"
+#include "pal-io.h"
+
+#include "ring.h"
+#include "config.h"
+#include "debug.h"
 
 #ifdef USE_BLUETOOTH
 #include "bt_main.h"
@@ -23,19 +37,175 @@
 
 #define WIFI_SSID "TinkerHouse"
 #define WIFI_PWD "Join us in the fun."
+
+#include "pico/time.h"
+#include "pico/cyw43_arch.h"
+#include "lwip/netif.h"
+#include "lwip/ip4_addr.h"
+
+#define WIFI_RETRY_MS 100
+#define WIFI_TIMEOUT_US (10 * 1000 * 1000)
+static bool connect_wifi_callback(void)
+{
+    bool wifi_up = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA) == CYW43_LINK_UP;
+    static bool was_connected = false;
+
+    if (wifi_up)
+    {
+        was_connected = true;
+        return true;
+    }
+
+    int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
+    if (status == CYW43_LINK_JOIN)
+    {
+        u_printf("WIFI: Stuck joining, forcing leave...\n");
+        cyw43_wifi_leave(&cyw43_state, CYW43_ITF_STA);
+        sleep_ms(2000);
+        watchdog_reboot(0, 0, 0);
+        while (1)
+        {
+            tight_loop_contents();
+        }
+
+        return false;
+    }
+
+    // Only force leave if we were connected or joining
+    if (was_connected && (status == CYW43_LINK_UP || status == CYW43_LINK_JOIN))
+    {
+        u_printf("WIFI: Forcing disconnect to reset state...\n");
+        cyw43_wifi_leave(&cyw43_state, CYW43_ITF_STA);
+        sleep_ms(2000); // Give the stack more time to reset
+        was_connected = false;
+    }
+
+    cyw43_arch_enable_sta_mode();
+
+    u_printf("WIFI: attempting connect…\n");
+
+    int err = cyw43_arch_wifi_connect_timeout_ms(
+        WIFI_SSID,
+        WIFI_PWD,
+        CYW43_AUTH_WPA2_AES_PSK,
+        WIFI_TIMEOUT_US);
+
+    if (err)
+    {
+        u_printf("WIFI: connect failed (%d), retrying…\n", err);
+        sleep_ms(1000); // Wait before retrying
+        return false;
+    }
+    else
+    {
+        u_printf("WIFI: connected!\n");
+    }
+
+    struct netif *netif = netif_default;
+    u_printf("IP Address: %s\n", ip4addr_ntoa(netif_ip4_addr(netif)));
+    u_printf("SSID: %s\n", WIFI_SSID);
+    u_printf("PW:   %s\n", WIFI_PWD);
+    u_printf("IP:   %s\n", ip4addr_ntoa(netif_ip4_addr(netif)));
+    u_printf("GW:   %s\n", ip4addr_ntoa(netif_ip4_gw(netif)));
+    u_printf("MASK: %s\n", ip4addr_ntoa(netif_ip4_netmask(netif)));
+    u_printf("MAC:  %02x:%02x:%02x:%02x:%02x:%02x\n",
+             netif->hwaddr[0], netif->hwaddr[1], netif->hwaddr[2],
+             netif->hwaddr[3], netif->hwaddr[4], netif->hwaddr[5]);
+
+    // Check for a real IP
+    const char *ip = ip4addr_ntoa(netif_ip4_addr(netif));
+    if (ip && strcmp(ip, "0.0.0.0") == 0)
+    {
+        u_printf("WIFI: got 0.0.0.0 IP, retrying…\n");
+        sleep_ms(1000);
+        return false;
+    }
+
+    // The ultimate turn off power savings
+    uint32_t no_pm = cyw43_pm_value(
+        CYW43_NO_POWERSAVE_MODE, // m = no powersave
+        0,                       // pm2_sleep_ret_ms (unused)
+        0,                       // beacon wake period
+        0,                       // DTIM wake interval
+        0                        // assoc wake interval
+    );
+    cyw43_wifi_pm(&cyw43_state, no_pm);
+
+    was_connected = true;
+    return true;
+}
+
+static bool connect_wifi_callback2(void)
+{
+    bool wifi_up = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA) == CYW43_LINK_UP;
+    static bool ran_init = false;
+
+    if (wifi_up)
+    {
+        return true;
+    }
+
+    cyw43_arch_enable_sta_mode();
+
+    ran_init = true;
+
+    u_printf("WIFI: attempting connect…\n");
+    sleep_ms(1000);
+
+    int err = cyw43_arch_wifi_connect_timeout_ms(
+        WIFI_SSID,
+        WIFI_PWD,
+        CYW43_AUTH_WPA2_AES_PSK,
+        WIFI_TIMEOUT_US);
+
+    // int err = cyw43_arch_wifi_connect_blocking(
+    //     WIFI_SSID,
+    //     WIFI_PWD,
+    //     CYW43_AUTH_WPA2_AES_PSK);
+
+    sleep_ms(1000);
+    u_printf("WIFI: What do we say?\n");
+    if (err)
+    {
+        u_printf("WIFI: timeout, retrying…\n");
+    }
+    else
+    {
+        u_printf("WIFI: connected!\n");
+        cyw43_wifi_pm(&cyw43_state, CYW43_PERFORMANCE_PM);
+    }
+
+    struct netif *netif = netif_default;
+    u_printf("IP Address: %s\n", ip4addr_ntoa(netif_ip4_addr(netif)));
+
+    u_printf("SSID: %s\n", WIFI_SSID);
+    u_printf("PW:   %s\n", WIFI_PWD);
+
+    u_printf("IP:   %s\n", ip4addr_ntoa(netif_ip4_addr(netif)));
+    u_printf("GW:   %s\n", ip4addr_ntoa(netif_ip4_gw(netif)));
+    u_printf("MASK: %s\n", ip4addr_ntoa(netif_ip4_netmask(netif)));
+    u_printf("MAC:  %02x:%02x:%02x:%02x:%02x:%02x\n",
+             netif->hwaddr[0], netif->hwaddr[1], netif->hwaddr[2],
+             netif->hwaddr[3], netif->hwaddr[4], netif->hwaddr[5]);
+
+    // Check for a real IP
+    const char *ip = ip4addr_ntoa(netif_ip4_addr(netif));
+    if (ip && !strcmp(ip, "0.0.0.0") != 0)
+    {
+        // Success: print details and cancel the timer
+        printf("IP: %s  GW: %s  NM: %s\n",
+               ip,
+               ip4addr_ntoa(netif_ip4_gw(netif)),
+               ip4addr_ntoa(netif_ip4_netmask(netif)));
+        printf(" IT FAILED\n");
+        return false;
+    }
+
+    // Otherwise keep retrying
+    return true;
+}
+
 #endif
-
-#include "sd-card.h"
-#include "proj_hw.h"
-#include "buttons.h"
-#include "blink.pio.h"
-#include "ssd1306.h"
-#include "proj_hw.h"
-#include "pal-io.h"
-
-#include "ring.h"
-#include "config.h"
-#include "debug.h"
 
 static void ssd1306_set_status(ssd1306_t *disp, const char *s);
 void main_loop(ssd1306_tty_t *tty);
@@ -183,19 +353,19 @@ void core1_main(void)
     main_loop(&tty);
 }
 
-
 #ifdef USE_TELNET
 
-static int scan_result(void *env, const cyw43_ev_scan_result_t *result) {
-    if (result) {
+static int scan_result(void *env, const cyw43_ev_scan_result_t *result)
+{
+    if (result)
+    {
         printf("ssid: %-32s rssi: %4d chan: %3d mac: %02x:%02x:%02x:%02x:%02x:%02x sec: %u\n",
-            result->ssid, result->rssi, result->channel,
-            result->bssid[0], result->bssid[1], result->bssid[2], result->bssid[3], result->bssid[4], result->bssid[5],
-            result->auth_mode);
+               result->ssid, result->rssi, result->channel,
+               result->bssid[0], result->bssid[1], result->bssid[2], result->bssid[3], result->bssid[4], result->bssid[5],
+               result->auth_mode);
     }
     return 0;
 }
-
 
 void wifi_scan()
 {
@@ -248,7 +418,6 @@ void wifi_scan()
 
 #endif
 
-
 int main()
 {
     stdio_init_all();
@@ -265,54 +434,33 @@ int main()
         printf("cyw43_arch_init() failed.\n");
         return -1;
     }
-#endif
 
+#endif
 
 #ifdef USE_TELNET
 
     if (cyw43_arch_init_with_country(CYW43_COUNTRY_USA))
     {
-        printf("failed to initialise\n");
-        //     return 1;
+        u_printf("WIFI: init failed\n");
+        return false; // try again
     }
 
-   // wifi_scan();
-
-    // 2) switch to station mode
-    cyw43_arch_enable_sta_mode();
-
-    if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PWD, CYW43_AUTH_WPA2_AES_PSK, 10000 * 1000))
+    while (true)
     {
-        printf("\n\nfailed to connect\n");
-        //    return 1;
+        bool is_connected = connect_wifi_callback();
+        if (is_connected)
+        {
+            break;
+        }
     }
 
-    cyw43_arch_wifi_connect_blocking(WIFI_SSID, WIFI_PWD, CYW43_AUTH_WPA2_AES_PSK);
-
-    struct netif *netif = netif_default;
-    printf("IP Address: %s\n", ip4addr_ntoa(netif_ip4_addr(netif)));
-
-    printf("SSID: %s\n", WIFI_SSID);
-    printf("PW:   %s\n", WIFI_PWD);
-
-    printf("IP:   %s\n", ip4addr_ntoa(netif_ip4_addr(netif)));
-    printf("GW:   %s\n", ip4addr_ntoa(netif_ip4_gw(netif)));
-    printf("MASK: %s\n", ip4addr_ntoa(netif_ip4_netmask(netif)));
-    printf("MAC:  %02x:%02x:%02x:%02x:%02x:%02x\n",
-           netif->hwaddr[0], netif->hwaddr[1], netif->hwaddr[2],
-           netif->hwaddr[3], netif->hwaddr[4], netif->hwaddr[5]);
-
-    /*
-    CYW43_LINK_NONET (–2) → SSID not found
-
-    CYW43_LINK_BADAUTH (–3) → bad password/mismatch
-
-    CYW43_LINK_NOIP (2) → associated but no DHCP lease
-
-    CYW43_LINK_UP (3) → fully connected
-    lorenz-ruprecht.at
-    .*/
-
+    // // Somewhere in your init (e.g. after stdio_init_all()):
+    // struct repeating_timer wifi_timer;
+    // add_repeating_timer_ms(
+    //     WIFI_RETRY_MS,         // retry every 100 ms
+    //     connect_wifi_callback, // your callback
+    //     NULL,                  // no user data
+    //     &wifi_timer);
 #endif
 
     // Example to turn on the Pico W LED
@@ -325,15 +473,14 @@ int main()
 #endif
 
 #ifdef USE_TELNET
-
-    tcp_server_t *telnetserver = telnet_server_init(2048, 8192); // input and output buffer sizes
-    if (!telnetserver)
+    system_config.telnetserver = telnet_server_init(2048, 8192); // input and output buffer sizes
+    if (!system_config.telnetserver)
     {
         panic("out of memory");
     }
 
-    telnetserver->mode = TELNET_MODE;
-    telnet_server_start(telnetserver, true); // parameter tells whether to enable stdio driver or not... */
+    system_config.telnetserver->mode = TELNET_MODE;
+    telnet_server_start(system_config.telnetserver, true); // Disable STDIO -- does wierd werid things to the serial console */
 
     printf("TELNET SERVER STARTED\n");
 #endif
@@ -341,8 +488,8 @@ int main()
     while (true)
     {
 #ifdef USE_TELNET
-        cyw43_arch_poll();
-        tight_loop_contents();
+        bool is_connected = connect_wifi_callback();
+        sleep_ms(1 * 1000);
 #else
         sleep_ms(1 * 1000);
 #endif
@@ -450,6 +597,22 @@ void check_connections(ssd1306_tty_t *tty)
         system_config.usb_connected_state = CONNECTION_STATE_NOT_CONNECTED;
         has_changed = true;
     }
+
+#if USE_TELNET
+    bool wifi_up = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA) == CYW43_LINK_UP;
+    if (wifi_up && system_config.wifi_connected_state != CONNECTION_STATE_CONNECTED)
+    {
+        u_banner("WIFI CONNECTED");
+        system_config.wifi_connected_state = CONNECTION_STATE_CONNECTED;
+        has_changed = true;
+    }
+    else if (!wifi_up && system_config.wifi_connected_state == CONNECTION_STATE_CONNECTED)
+    {
+        u_banner("WIFI DROPPED");
+        system_config.wifi_connected_state = CONNECTION_STATE_NOT_CONNECTED;
+        has_changed = true;
+    }
+#endif
 
     if (has_changed)
     {

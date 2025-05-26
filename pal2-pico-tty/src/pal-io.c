@@ -7,10 +7,15 @@
 #include <string.h>
 #include <stdatomic.h>
 
+
 #include "config.h"
 #include "proj_hw.h"
 #include "kim-reply-parser.h"
 #include "ansi.h"
+
+#ifdef USE_TELNET
+#include <pico_telnetd.h>
+#endif
 
 #define RED ANSI_RED
 #define YELLOW ANSI_YELLOW
@@ -351,6 +356,21 @@ int user_getchar()
         char_out = ch;
     }
 
+#ifdef USE_TELNET2
+    if (system_config.telnetserver)
+    {
+        tcp_server_t *telnetserverzz = system_config.telnetserver;
+        telnet_ringbuffer_t *rr = &telnetserverzz->rb_in;
+
+        int telnet_ch = telnet_ringbuffer_read_char(rr);
+        //        printf("%d", telnet_ch);
+        if (telnet_ch > -1)
+        {
+            char_out = ch;
+        }
+    }
+#endif
+
     char_out = change_input_char(char_out);
     return char_out;
 }
@@ -385,6 +405,15 @@ void u_putc(char ch_pal)
         bt_ring_push(&bt_tx_ring, (char)ch_pal);
         // rfcomm_request_can_send_now_event handled by the interrupt
     }
+
+#ifdef USE_TELNET2
+    if (system_config.telnetserver != NULL)
+    {
+        tcp_server_t *telnetserverzz = system_config.telnetserver;
+        telnet_ringbuffer_t *rr = &telnetserverzz->rb_out;
+        telnet_ringbuffer_add_char(rr, (char)ch_pal, false); // Last argument controls wheter to overwrite in case ringbuffer fills uup...
+    }
+#endif
 
     last_was_cr = (ch_pal == '\r');
     putchar_raw(ch_pal);

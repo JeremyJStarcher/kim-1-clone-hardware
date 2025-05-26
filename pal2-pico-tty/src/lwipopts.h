@@ -89,4 +89,7 @@
 #define SLIP_DEBUG                  LWIP_DBG_OFF
 #define DHCP_DEBUG                  LWIP_DBG_OFF
 
+// LOCAL PROJECT OVERRIDE
+#define LWIP_TCP_NODELAY 1
+
 #endif /* __LWIPOPTS_H__ */

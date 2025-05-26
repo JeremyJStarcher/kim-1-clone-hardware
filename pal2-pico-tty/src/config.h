@@ -9,6 +9,10 @@ extern "C"
 #include <stdint.h>
 #include "ring.h"
 
+#ifdef USE_TELNET
+#include <pico_telnetd.h>
+#endif
+
     typedef enum
     {
         FILE_STATUS_NONE, /* not yet evaluated / no file          */
@@ -34,6 +38,12 @@ extern "C"
         uint16_t rfcomm_channel_id;
         connection_state_t bt_connected_state;
         connection_state_t usb_connected_state;
+        connection_state_t wifi_connected_state;
+
+#ifdef USE_TELNET
+        tcp_server_t *telnetserver;
+#endif
+
     } pal_config_t;
 
     extern pal_config_t system_config;

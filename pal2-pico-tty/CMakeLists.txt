@@ -130,8 +130,9 @@ add_executable(pal-interface-telnet
 #endif()
 
 target_include_directories(pal-interface-telnet PRIVATE
-    ${COMMON_INCLUDES}
     ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/src
+    ${COMMON_INCLUDES}
     ${CMAKE_CURRENT_LIST_DIR}/src/lib/pico-telnetd/include
 
 )
@@ -143,6 +144,7 @@ target_link_libraries(pal-interface-telnet PRIVATE
     ${COMMON_LIBS}
    pico_cyw43_arch_lwip_threadsafe_background
    pico-telnetd-lib   # adds pico-telnetd’s sources & headers
+   pico_cyw43_driver
 )
 
 configure_pio_for(pal-interface-telnet)
