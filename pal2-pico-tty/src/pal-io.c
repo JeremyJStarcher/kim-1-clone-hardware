@@ -191,6 +191,7 @@ void reset_pal(ssd1306_tty_t *tty)
 
     ssd1306_init_tty(tty->ssd1306, &tty2, get_font());
 
+    ssd1306_tty_set_scale(&tty2, user_config.menu_scale);
     ssd1306_tty_cls(&tty2);
     ssd1306_tty_puts(&tty2, "PAL RESET\n");
     ssd1306_tty_show(&tty2);

@@ -35,6 +35,7 @@ SOFTWARE.
 #include "font.h"
 #include "debug.h"
 #include "pal-io.h"
+#include "config.h"
 
 static bool text_inv_mode = false;
 void ssd1306_tty_show2(ssd1306_tty_t *tty);
@@ -542,7 +543,7 @@ void ssd1306_init_tty(ssd1306_t *p, ssd1306_tty_t *tty, const uint8_t *font)
     ssd1306_tty_cls(tty);
 
     ssd1306_poweron(tty->ssd1306);
-    ssd1306_contrast(tty->ssd1306, 255);
+    ssd1306_contrast(tty->ssd1306, user_config.oled_brightness);
     tty->current_color = SSD1306_COLOR_NORMAL;
 
     // ssd1306_tty_puts(tty, "Line 1\n", 0);

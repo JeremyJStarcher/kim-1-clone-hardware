@@ -19,6 +19,8 @@
 #define TOGGLE_CHAR_KEY_NAME "toggle_char"
 #define FORCE_UPPER_CASE_KEY_NAME "force_upper_case"
 #define BS_TO_DEL_KEY_NAME "bs_to_del"
+#define OLED_BRIGHTNESS_KEY_NAME "oled_brightness"
+#define MENU_SCALE_KEY_NAME "menu_scale"
 
 #define CONFIG_FILENAME "config.ini"
 
@@ -41,6 +43,8 @@ pal_config_t system_config = {
     .soft_version = "1.0.0",
     .rfcomm_channel_id = -1,
     .bt_connected_state = CONNECTION_STATE_NOT_CONNECTED,
+    .usb_connected_state = CONNECTION_STATE_NOT_CONNECTED,
+    .wifi_connected_state = CONNECTION_STATE_NOT_CONNECTED,
 #ifdef USE_TELNET
     .telnetserver = NULL
 #endif
@@ -53,7 +57,9 @@ user_config_t user_config = {
     .use_hard_reset = true,
     .toggle_char = '~',
     .force_upper_case = false,
-    .bs_to_del = false};
+    .bs_to_del = false,
+    .oled_brightness = 255,
+    .menu_scale = 1};
 
 config_entry_t cfg_map[] = {
     {BAUD_KEY_NAME, CT_UINT16, MENU_TYPE_LIST, &user_config.baud, "300, 1200, 2400, 9600", "300\t1200\t2400\t9600"},
@@ -63,6 +69,8 @@ config_entry_t cfg_map[] = {
     {TOGGLE_CHAR_KEY_NAME, CT_CHAR, MENU_TYPE_NONE, &user_config.toggle_char, "What character to use to toggle TTY mode", ""},
     {FORCE_UPPER_CASE_KEY_NAME, CT_BOOL, MENU_TYPE_LIST, &user_config.force_upper_case, "Force all characters to upper case", "true\tfalse"},
     {BS_TO_DEL_KEY_NAME, CT_BOOL, MENU_TYPE_LIST, &user_config.bs_to_del, "Send DEL (0x7F) instead of backspace (recommended)", "true\tfalse"},
+    {OLED_BRIGHTNESS_KEY_NAME, CT_UINT16, MENU_TYPE_LIST, &user_config.oled_brightness, "OLED Brightness", "32\t64\t128\t192\t255"},
+    {MENU_SCALE_KEY_NAME, CT_UINT16, MENU_TYPE_LIST, &user_config.menu_scale, "Menu Scale", "1\t2"},
 };
 
 size_t cfg_map_len = sizeof(cfg_map) / sizeof(cfg_map[0]);

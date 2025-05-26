@@ -187,7 +187,7 @@ static button_state_t read_buttons_struct_inner(ssd1306_tty_t *tty)
 }
 
 static uint64_t seconds_until_screen_hidden = 1 * 60;
-static uint8_t screen_dim_progress_255 = 255; // 255 = full brightness, 0 = dim/off
+static uint8_t screen_dim_progress = user_config.oled_brightness;
 
 static uint8_t fade_duration = 30;
 static uint64_t last_activity_us = 0;
@@ -209,8 +209,8 @@ button_state_t read_buttons_struct(ssd1306_tty_t *tty)
     {
         last_activity_us = now;
         ssd1306_poweron(tty->ssd1306);
-        screen_dim_progress_255 = 255;
-        ssd1306_contrast(tty->ssd1306, screen_dim_progress_255);
+        screen_dim_progress = user_config.oled_brightness;
+        ssd1306_contrast(tty->ssd1306, screen_dim_progress);
     }
 
     button_state_t btn = read_buttons_struct_inner(tty);
@@ -226,8 +226,8 @@ button_state_t read_buttons_struct(ssd1306_tty_t *tty)
         screen_hidden = false;
 
         ssd1306_poweron(tty->ssd1306);
-        screen_dim_progress_255 = 255;
-        ssd1306_contrast(tty->ssd1306, screen_dim_progress_255);
+        screen_dim_progress = user_config.oled_brightness;
+        ssd1306_contrast(tty->ssd1306, screen_dim_progress);
     }
     else if (now - last_activity_us > TIMEOUT_US)
     {
@@ -240,8 +240,8 @@ button_state_t read_buttons_struct(ssd1306_tty_t *tty)
     else if (screen_hidden)
     {
         ssd1306_poweron(tty->ssd1306);
-        screen_dim_progress_255 = 255;
-        ssd1306_contrast(tty->ssd1306, screen_dim_progress_255);
+        screen_dim_progress = user_config.oled_brightness;
+        ssd1306_contrast(tty->ssd1306, screen_dim_progress);
 
         screen_hidden = false;
     }
@@ -254,20 +254,20 @@ button_state_t read_buttons_struct(ssd1306_tty_t *tty)
         if (remaining_us > fade_duration * 1000000ULL)
         {
             // More than 60 seconds left: full brightness
-            screen_dim_progress_255 = 255;
+            screen_dim_progress = user_config.oled_brightness;
         }
         else
         {
             // Last 60 seconds: fade from 255 to 0
-            screen_dim_progress_255 = (uint8_t)((remaining_us * 255) / (fade_duration * 1000000ULL));
+            screen_dim_progress = (uint8_t)((remaining_us * user_config.oled_brightness) / (fade_duration * 1000000ULL));
         }
     }
     else
     {
-        screen_dim_progress_255 = 0;
+        screen_dim_progress = 0;
     }
 
-    ssd1306_contrast(tty->ssd1306, screen_dim_progress_255);
+    ssd1306_contrast(tty->ssd1306, screen_dim_progress);
     return btn;
 }
 
@@ -634,7 +634,7 @@ int menu_tty_up(ssd1306_tty_t *tty, void *_item)
 
 int process_menu_inner(ssd1306_tty_t *tty, dmenu_list_t *menu)
 {
-    ssd1306_tty_set_scale(tty, 1);
+    ssd1306_tty_set_scale(tty, user_config.menu_scale);
 
     while (true)
     {

@@ -509,8 +509,11 @@ void show_default_text(ssd1306_tty_t *tty)
     char bt_mesg[] = "BT";
     char usb_mesg[] = "USB";
 
+    ssd1306_tty_set_scale(tty, user_config.menu_scale);
+    //  ssd1306_tty_set_scale(tty, 1);
+
     ssd1306_tty_cls(tty);
-    ssd1306_tty_puts(tty, "USB<->PAL2\n");
+    //  ssd1306_tty_puts(tty, "USB<->PAL2\n");
     if (system_config.tty_mode)
     {
         ssd1306_tty_puts(tty, "TTY MODE\n");
@@ -520,8 +523,9 @@ void show_default_text(ssd1306_tty_t *tty)
         ssd1306_tty_puts(tty, "PAL2 MODE\n");
     }
 
-    ssd1306_tty_printf(tty, "'%c' TO TOGGLE.\n\n", user_config.toggle_char);
+    ssd1306_tty_printf(tty, "%c TOGGLE.\n", user_config.toggle_char);
 
+#if 1
     for (size_t i = 0; i < strlen(bt_mesg); i++)
     {
 
@@ -535,20 +539,24 @@ void show_default_text(ssd1306_tty_t *tty)
                                 : ' ');
     }
     tty->current_color = SSD1306_COLOR_NORMAL;
+#endif
 
+#if 1
     if (system_config.file_status == FILE_STATUS_GOOD)
     {
-        ssd1306_tty_puts(tty, "  LOAD SUCCESS  ");
+        ssd1306_tty_puts(tty, " OK  ");
     }
     else if (system_config.file_status == FILE_STATUS_ERROR)
     {
-        ssd1306_tty_puts(tty, "   LOAD ERROR   ");
+        ssd1306_tty_puts(tty, " ERR ");
     }
     else
     {
-        ssd1306_tty_puts(tty, "                ");
+        ssd1306_tty_puts(tty, " --- ");
     }
+#endif
 
+#if 1
     for (size_t i = 0; i < strlen(usb_mesg); i++)
     {
         tty->current_color = system_config.usb_connected_state == CONNECTION_STATE_CONNECTED
@@ -560,6 +568,8 @@ void show_default_text(ssd1306_tty_t *tty)
                                 ? usb_mesg[i]
                                 : ' ');
     }
+#endif
+
     tty->current_color = SSD1306_COLOR_NORMAL;
 
     ssd1306_tty_show(tty);

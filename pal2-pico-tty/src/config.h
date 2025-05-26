@@ -58,6 +58,8 @@ extern "C"
         char toggle_char;
         bool force_upper_case;
         bool bs_to_del;
+        uint16_t oled_brightness;
+        uint16_t menu_scale; // Scale for menu items, e.g., 1 for normal, 2 for double size
     } user_config_t;
 
     // Types of config entries
