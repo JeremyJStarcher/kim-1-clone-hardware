@@ -187,7 +187,7 @@ static button_state_t read_buttons_struct_inner(ssd1306_tty_t *tty)
 }
 
 static uint64_t seconds_until_screen_hidden = 1 * 60;
-static uint8_t screen_dim_progress = user_config.oled_brightness;
+static uint8_t screen_dim_progress = 0;
 
 static uint8_t fade_duration = 30;
 static uint64_t last_activity_us = 0;
