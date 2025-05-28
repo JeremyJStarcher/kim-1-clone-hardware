@@ -7,6 +7,17 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# define "w" board to use cyw43_arch_xxx() function
+if(PICO_BOARD)
+    unset(PICO_BOARD)
+endif()
+if(PICO_PLATFORM STREQUAL rp2350)
+    set(PICO_BOARD pico2_w)
+else()
+    set(PICO_BOARD pico_w)
+endif()
+
+
 # Initialise pico_sdk from installed location
 # (note this can come from environment, CMake cache etc)
 
@@ -23,28 +34,19 @@ set(picotoolVersion 2.1.1)
 set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
 if (EXISTS ${picoVscode})
     include(${picoVscode})
-endif()
-# ====================================================================================
-# set(PICO_BOARD pico_w CACHE STRING "Board type")
-
-# define "w" board to use cyw43_arch_xxx() function
-if(PICO_BOARD)
-    unset(PICO_BOARD)
-endif()
-if(PICO_PLATFORM STREQUAL rp2350)
-    set(PICO_BOARD pico2_w)
+    include(pico_sdk_import.cmake)
+    pico_sdk_init()
 else()
-    set(PICO_BOARD pico_w)
+    include(pico_sdk_import.cmake)
+    # Initialise the Raspberry Pi Pico SDK
+    pico_sdk_init()
 endif()
 
+#include(pico_sdk_import.cmake)
 
-# Pull in Raspberry Pi Pico SDK (must be before project)
-include(pico_sdk_import.cmake)
 
 project(pal-interface C CXX ASM)
 
-# Initialise the Raspberry Pi Pico SDK
-pico_sdk_init()
 
 function(configure_pio_for target)
   pico_generate_pio_header(
@@ -55,10 +57,9 @@ function(configure_pio_for target)
 endfunction()
 
 
-
 # ─── Common source files & include dirs ──────────────────────────
 set(COMMON_SRCS
-    src/pal2-pico-tty.cpp
+    src/pal2-pico-tty.c
     src/lib/sd-card/sd-card.c
     src/lib/sd-card/pico_fatfs/fatfs/ff.c
     src/lib/sd-card/pico_fatfs/fatfs/ffsystem.c
