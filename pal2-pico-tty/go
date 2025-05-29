@@ -1,80 +1,129 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
+#
+# ─── USER CONFIG ────────────────────────────────────────────────────────────────
+#
+# Which target to build & flash?  (override on the command line)
+#  e.g. BUILD_TARGET=pal-interface-usb ./deploy.sh
+#       BUILD_TARGET=all              ./deploy.sh
+BUILD_TARGET=${BUILD_TARGET:-pal-interface-bluetooth}
 
-UF2_FILE=./build/pal-interface-bluetooth.uf2
-#UF2_FILE=./build/pal-interface-telnet.uf2
-#UF2_FILE=./build/pal-interface-usb.uf2
-
-
-
-TIMEOUT=100       # seconds to wait for RPI-RP2 mount
-USER_MEDIA_PATHS=(
-    "/media/$USER"
-    "/run/media/$USER"
+# All known CMake targets (must match add_executable names)
+ALL_TARGETS=(
+  pal-interface-bluetooth
+  pal-interface-telnet
+  pal-interface-usb
 )
 
-# Step 1: Build the firmware
-echo "[*] Building firmware..."
-mkdir -p build
-cd build
-cmake ..
-make
-cd ..
+# Where your UF2s land
+BUILD_DIR=build
 
-# Step 2: Trigger bootloader via 1200 baud
-echo "[*] Looking for /dev/ttyACM* device..."
-ORIG_TTYS=(/dev/ttyACM*)
+# Where to spot the Pico mass-storage mount
+TIMEOUT=100   # seconds
+USER_MEDIA_PATHS=(
+  "/media/$USER"
+  "/run/media/$USER"
+)
 
-if [ ${#ORIG_TTYS[@]} -eq 0 ]; then
-    echo "[!] No /dev/ttyACM* device found. Is the Pico connected?"
-    exit 1
-fi
+#
+# ─── FUNCTIONS ─────────────────────────────────────────────────────────────────
+#
+build_firmware() {
+  local target=$1
 
-for DEV in "${ORIG_TTYS[@]}"; do
-    echo "[*] Triggering bootloader on $DEV via 1200 baud + DTR low..."
-    stty -F "$DEV" 1200 || continue
-    (
-        exec 3<>"$DEV"
-        sleep 0.1
-        printf "\x00" >&3 || true
-        sleep 0.1
-        exec 3>&-
-    ) 2>/dev/null || true
-done
+  echo "[*] Building firmware target: $target"
+  mkdir -p "$BUILD_DIR"
+  pushd "$BUILD_DIR" >/dev/null
 
-# Step 3: Wait for disconnection
-echo -n "[*] Waiting for Pico to disconnect..."
-for i in {1..40}; do
-    sleep 0.25
-    CURRENT_TTYS=(/dev/ttyACM*)
-    if [ ${#CURRENT_TTYS[@]} -eq 0 ]; then
-        echo -n " disconnected."
-        break
-    fi
+    # regenerate if needed
+    cmake .. 
+
+    # build just that target
+    cmake --build . --target "$target" -- -j"$(nproc)"
+
+  popd >/dev/null
+}
+
+trigger_bootloader() {
+  # bring each /dev/ttyACM* up to 1200 baud + DTR toggle
+  echo "[*] Triggering Pico bootloader via serial…"
+  shopt -s nullglob
+  local devs=(/dev/ttyACM*)
+  shopt -u nullglob
+
+  if [ ${#devs[@]} -eq 0 ]; then
+    echo "[!] No /dev/ttyACM* found. Is Pico connected?" >&2
+    # exit 1
+  fi
+
+  for dev in "${devs[@]}"; do
+    echo "    ↳ $dev"
+    stty -F "$dev" 1200 || continue
+    {
+      exec 3<>"$dev"
+      sleep .1
+      printf "\x00" >&3 || true
+      sleep .1
+      exec 3>&-
+    } 2>/dev/null || true
+  done
+}
+
+wait_for_disconnect() {
+  echo -n "[*] Waiting for Pico to disconnect…"
+  for _ in {1..40}; do
+    sleep .25
+    shopt -s nullglob
+    local now=(/dev/ttyACM*)
+    shopt -u nullglob
+    [ ${#now[@]} -eq 0 ] && { echo " disconnected."; return; }
     echo -n "."
-done
-echo  ""
+  done
+  echo " (timeout)"
+}
 
-# Step 4: Retry and wait for RPI-RP2 mass storage
-echo "[*] Waiting for RPI-RP2 to mount (timeout: $TIMEOUT s)..."
-for ((i=0; i<TIMEOUT; i++)); do
+copy_uf2() {
+  local uf2="$BUILD_DIR/$1.uf2"
+  echo "[*] Waiting for RPI-RP2 mount (timeout: $TIMEOUT s)…"
+  for ((i=0;i<TIMEOUT;i++)); do
     for path in "${USER_MEDIA_PATHS[@]}"; do
-        if [ -d "$path" ]; then
-            MOUNT=$(find "$path" -maxdepth 1 -type d -name "RPI-RP2" 2>/dev/null | head -n 1 || true)
-            if [ -n "$MOUNT" ]; then
-                echo "[*] Found RPI-RP2 at: $MOUNT"
-                echo "[*] Copying UF2 file..."
-                cp "$UF2_FILE" "$MOUNT/"
-                echo "[*] Upload complete."
-                exit 0
-            fi
-        fi
+      [ -d "$path" ] || continue
+      local m
+      m=$(find "$path" -maxdepth 1 -type d -name "RPI-RP2" 2>/dev/null | head -n1)
+      if [ -n "$m" ]; then
+        echo "[*] Found at: $m"
+        echo "[*] Copying $uf2 → $m/"
+        cp "$uf2" "$m/" && echo "[*] Upload complete." && return 0
+      fi
     done
     sleep 1
     echo -n "."
-done
+  done
 
-echo
-echo "[!] Timed out waiting for RPI-RP2 to appear after $TIMEOUT seconds."
-exit 1
+  echo >&2
+  echo "[!] Timed out waiting for RPI-RP2 after $TIMEOUT s." >&2
+  exit 1
+}
+
+#
+# ─── MAIN ───────────────────────────────────────────────────────────────────────
+#
+if [ "$BUILD_TARGET" = "all" ]; then
+  for tgt in "${ALL_TARGETS[@]}"; do
+    build_firmware "$tgt"
+  done
+else
+  build_firmware "$BUILD_TARGET"
+fi
+
+trigger_bootloader
+wait_for_disconnect
+
+# If you built “all”, you probably only want to flash one—but we’ll flash the last-built.
+# Feel free to adjust this logic if you prefer to flash each in turn.
+if [ "$BUILD_TARGET" = all ]; then
+  copy_uf2 "${ALL_TARGETS[-1]}"
+else
+  copy_uf2 "$BUILD_TARGET"
+fi
