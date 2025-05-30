@@ -39,6 +39,7 @@ extern "C"
         connection_state_t bt_connected_state;
         connection_state_t usb_connected_state;
         connection_state_t wifi_connected_state;
+        char ip_addr[40];
 
 #ifdef USE_TELNET
         tcp_server_t *telnetserver;

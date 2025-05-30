@@ -42,11 +42,8 @@ else()
     pico_sdk_init()
 endif()
 
-#include(pico_sdk_import.cmake)
-
 
 project(pal-interface C CXX ASM)
-
 
 function(configure_pio_for target)
   pico_generate_pio_header(

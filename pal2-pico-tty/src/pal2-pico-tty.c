@@ -131,6 +131,7 @@ static bool connect_wifi_callback(void)
     );
     cyw43_wifi_pm(&cyw43_state, no_pm);
 
+    strcpy(system_config.ip_addr, ip);
     was_connected = true;
     return true;
 }
@@ -571,6 +572,9 @@ void show_default_text(ssd1306_tty_t *tty)
 #endif
 
     tty->current_color = SSD1306_COLOR_NORMAL;
+
+    ssd1306_tty_puts(tty, "\n");
+    ssd1306_tty_puts(tty, system_config.ip_addr);
 
     ssd1306_tty_show(tty);
 }
