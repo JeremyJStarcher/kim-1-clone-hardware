@@ -1,15 +1,16 @@
 
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
 #include "hardware/i2c.h"
 #include "hardware/pio.h"
-#include "pico/cyw43_arch.h"
 #include "hardware/uart.h"
 #include "pico/binary_info.h"
 #include "malloc.h"
 #include "pico/multicore.h"
-#include "pico/cyw43_arch.h"
 #include "hardware/watchdog.h"
 
 #include "sd-card.h"
@@ -35,8 +36,10 @@
 #include "lwip/ip4_addr.h"
 #include <pico_telnetd.h>
 
-#define WIFI_SSID "TinkerHouse"
-#define WIFI_PWD "Join us in the fun."
+// #define WIFI_SSID "TinkerHouse"
+// #define WIFI_PWD "Join us in the fun."
+#define WIFI_SSID "AkronMakerSpace"
+#define WIFI_PWD "wemakeakron"
 
 #include "pico/time.h"
 #include "pico/cyw43_arch.h"
@@ -130,6 +133,9 @@ static bool connect_wifi_callback(void)
         0                        // assoc wake interval
     );
     cyw43_wifi_pm(&cyw43_state, no_pm);
+
+
+    // cyw43_wifi_pm(&cyw43_state, cyw43_pm_value(CYW43_NO_POWERSAVE_MODE, 20, 1, 1, 1));
 
     strcpy(system_config.ip_addr, ip);
     was_connected = true;
@@ -259,14 +265,12 @@ bool repeating_timer_callback(struct repeating_timer *t)
 }
 #endif
 
-void core1_main(void)
+void main_user_code(void)
 {
     struct repeating_timer timer;
     // add_repeating_timer_ms(100, repeating_timer_callback, NULL, &timer);
 
     pal_io_init();
-
-    // jjz -> configure_hardware();
 
     // SPI initialisation. This example will use SPI at 1MHz.
     spi_init(SPI_PORT, 1000 * 1000);
@@ -428,13 +432,15 @@ int main()
 
     bool connected = wait_for_usb_connection(1000);
 
+    // jjz -> configure_hardware();
+
 #ifndef USE_TELNET
-    // Initialise the Wi-Fi chip
-    if (cyw43_arch_init())
-    {
-        printf("cyw43_arch_init() failed.\n");
-        return -1;
-    }
+    // // Initialise the Wi-Fi chip
+    // if (cyw43_arch_init())
+    // {
+    //     printf("cyw43_arch_init() failed.\n");
+    //     return -1;
+    // }
 
 #endif
 
@@ -465,9 +471,11 @@ int main()
 #endif
 
     // Example to turn on the Pico W LED
-    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
+    // jjz cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
 
-    multicore_launch_core1(core1_main); // 1️⃣ start core-1 and its IO
+#ifndef MAIN_CORE0
+    multicore_launch_core1(main_user_code); // 1️⃣ start core-1 and its IO
+#endif
 
 #ifdef USE_BLUETOOTH
     bt_main();
@@ -481,19 +489,18 @@ int main()
     }
 
     system_config.telnetserver->mode = TELNET_MODE;
-    telnet_server_start(system_config.telnetserver, true); // Disable STDIO -- does wierd werid things to the serial console */
+    telnet_server_start(system_config.telnetserver, false); // Disable STDIO -- does wierd werid things to the serial console */
 
     printf("TELNET SERVER STARTED\n");
 #endif
 
+#ifdef MAIN_CORE0
+    main_user_code();
+#endif
+
     while (true)
     {
-#ifdef USE_TELNET
-        bool is_connected = connect_wifi_callback();
         sleep_ms(1 * 1000);
-#else
-        sleep_ms(1 * 1000);
-#endif
     }
 }
 
@@ -574,7 +581,9 @@ void show_default_text(ssd1306_tty_t *tty)
     tty->current_color = SSD1306_COLOR_NORMAL;
 
     ssd1306_tty_puts(tty, "\n");
+#ifdef USE_TELNET
     ssd1306_tty_puts(tty, system_config.ip_addr);
+#endif
 
     ssd1306_tty_show(tty);
 }
@@ -625,9 +634,10 @@ void check_connections(ssd1306_tty_t *tty)
         u_banner("WIFI DROPPED");
         system_config.wifi_connected_state = CONNECTION_STATE_NOT_CONNECTED;
         has_changed = true;
+        strcpy(system_config.ip_addr, "-NO WIFI-");
+        
     }
 #endif
-
     if (has_changed)
     {
         reset_screen_timer();

@@ -359,7 +359,7 @@ int user_getchar()
         char_out = ch;
     }
 
-#ifdef USE_TELNET2
+#ifdef USE_TELNET
     if (system_config.telnetserver)
     {
         tcp_server_t *telnetserverzz = system_config.telnetserver;
@@ -409,7 +409,7 @@ void u_putc(char ch_pal)
         // rfcomm_request_can_send_now_event handled by the interrupt
     }
 
-#ifdef USE_TELNET2
+#ifdef USE_TELNET
     if (system_config.telnetserver != NULL)
     {
         tcp_server_t *telnetserverzz = system_config.telnetserver;

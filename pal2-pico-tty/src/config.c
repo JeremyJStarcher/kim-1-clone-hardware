@@ -45,8 +45,8 @@ pal_config_t system_config = {
     .bt_connected_state = CONNECTION_STATE_NOT_CONNECTED,
     .usb_connected_state = CONNECTION_STATE_NOT_CONNECTED,
     .wifi_connected_state = CONNECTION_STATE_NOT_CONNECTED,
-    .ip_addr = {0},
 #ifdef USE_TELNET
+    .ip_addr = {0},
     .telnetserver = NULL
 #endif
 };
