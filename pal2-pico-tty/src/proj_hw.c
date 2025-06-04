@@ -10,13 +10,13 @@
 #include "stdlib.h"
 #include "pico/binary_info.h"
 #include "hardware/adc.h"
-// jjz #include "pico/cyw43_arch.h"
+#include "pico/cyw43_arch.h"
 #include "hardware/uart.h"
 
 #include "proj_hw.h"
 #include "debug.h"
 
-// const uint32_t PIN_LED = 25; // only for Pico
+const uint32_t PIN_LED = 25; // only for Pico
 static bool _picoW = true;
 static bool _led = false;
 
@@ -202,8 +202,6 @@ size_t get_largest_alloc_block_binary2(size_t low, size_t high)
     return best;
 }
 
-#if 0
-
 bool configure_hardware()
 {
 
@@ -228,46 +226,42 @@ bool configure_hardware()
     _set_led(false);
     return true;
 }
-#endif
 
 static bool _check_pico_w()
 {
-    return true;
-    // adc_init();
-    // adc_gpio_init(29);   // Initialize GPIO29 for ADC
-    // adc_select_input(3); // ADC3 is GPIO29
-    // uint16_t adc_value = adc_read();
-    // sleep_ms(100);
-    // adc_value = adc_read();
+    adc_init();
+    adc_gpio_init(29);   // Initialize GPIO29 for ADC
+    adc_select_input(3); // ADC3 is GPIO29
+    uint16_t adc_value = adc_read();
+    sleep_ms(100);
+    adc_value = adc_read();
 
-    // gpio_init(25);
-    // gpio_set_dir(25, GPIO_IN);
-    // bool gpio25_value = gpio_get(25);
+    gpio_init(25);
+    gpio_set_dir(25, GPIO_IN);
+    bool gpio25_value = gpio_get(25);
 
-    // // Logic:
-    // // - ADC < ~200 (low voltage) suggests Pico W
-    // // - GPIO25 HIGH also suggests Pico W
-    // if (gpio25_value || adc_value < 200)
-    // {
-    //     return true; // Probably Pico W
-    // }
+    // Logic:
+    // - ADC < ~200 (low voltage) suggests Pico W
+    // - GPIO25 HIGH also suggests Pico W
+    if (gpio25_value || adc_value < 200)
+    {
+        return true; // Probably Pico W
+    }
 
-    // return false; // Probably Pico
+    return false; // Probably Pico
 }
 
 void _set_led(bool flag)
 {
-    // jjz
-    //     if (_picoW)
-    //     {
-    //         cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, flag);
-    //     }
-    //     else
-    //     {
-    //         gpio_put(PIN_LED, flag);
-    //     }
-    //     _led = flag;
-    //
+    if (_picoW)
+    {
+        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, flag);
+    }
+    else
+    {
+        gpio_put(PIN_LED, flag);
+    }
+    _led = flag;
 }
 
 void _toggle_led()

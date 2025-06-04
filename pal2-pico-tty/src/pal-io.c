@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdatomic.h>
 
+
 #include "config.h"
 #include "proj_hw.h"
 #include "kim-reply-parser.h"
@@ -235,10 +236,7 @@ void enable_tty_mode(ssd1306_tty_t *tty)
     ssd1306_tty_puts(tty, "WAITING FOR KIM\nPROMPT\n");
     ssd1306_tty_show(tty);
 
-    if (system_config.tty_mode)
-    {
-        disable_tty_mode(tty);
-    }
+    disable_tty_mode(tty);
 
     gpio_init(PAL_RESET_GPIO);
     gpio_init(TTY_SWITCH1_INPUT);
@@ -359,7 +357,7 @@ int user_getchar()
         char_out = ch;
     }
 
-#ifdef USE_TELNET
+#ifdef USE_TELNET2
     if (system_config.telnetserver)
     {
         tcp_server_t *telnetserverzz = system_config.telnetserver;
@@ -409,7 +407,7 @@ void u_putc(char ch_pal)
         // rfcomm_request_can_send_now_event handled by the interrupt
     }
 
-#ifdef USE_TELNET
+#ifdef USE_TELNET2
     if (system_config.telnetserver != NULL)
     {
         tcp_server_t *telnetserverzz = system_config.telnetserver;

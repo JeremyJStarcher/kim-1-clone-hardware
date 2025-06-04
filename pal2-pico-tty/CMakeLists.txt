@@ -42,8 +42,11 @@ else()
     pico_sdk_init()
 endif()
 
+#include(pico_sdk_import.cmake)
+
 
 project(pal-interface C CXX ASM)
+
 
 function(configure_pio_for target)
   pico_generate_pio_header(
@@ -104,7 +107,6 @@ target_compile_definitions(pal-interface-bluetooth PRIVATE
     PICO_MALLOC_PANIC=0
     USE_BLUETOOTH
 )
-
 target_link_libraries(pal-interface-bluetooth PRIVATE
     ${COMMON_LIBS}
     pico_cyw43_arch_none
@@ -138,14 +140,10 @@ target_include_directories(pal-interface-telnet PRIVATE
 target_compile_definitions(pal-interface-telnet PRIVATE
     PICO_MALLOC_PANIC=0
     USE_TELNET
-    MAIN_CORE0
 )
 target_link_libraries(pal-interface-telnet PRIVATE
     ${COMMON_LIBS}
-
-   # This spins stuff into core 1.. no, we are goign to go with the polling option
    pico_cyw43_arch_lwip_threadsafe_background
-   #pico_cyw43_arch_lwip_poll    # ← single-core, manual polling
    pico-telnetd-lib   # adds pico-telnetd’s sources & headers
    pico_cyw43_driver
 )

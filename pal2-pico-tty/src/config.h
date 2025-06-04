@@ -41,7 +41,6 @@ extern "C"
         connection_state_t wifi_connected_state;
 
 #ifdef USE_TELNET
-        char ip_addr[40];
         tcp_server_t *telnetserver;
 #endif
 

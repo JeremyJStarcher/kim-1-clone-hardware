@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// jjz #include "pico/cyw43_arch.h"
+#include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
 #include "btstack_run_loop.h"
 
