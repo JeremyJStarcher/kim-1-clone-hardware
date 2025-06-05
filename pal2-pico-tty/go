@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Trap to cleanup on exit
+trap 'cleanup_on_exit $?' EXIT
+
 #
 # ─── USER CONFIG ────────────────────────────────────────────────────────────────
 #
@@ -20,11 +23,74 @@ ALL_TARGETS=(
 BUILD_DIR=build
 
 # Where to spot the Pico mass-storage mount
-TIMEOUT=100   # seconds
+TIMEOUT=100 # seconds
 USER_MEDIA_PATHS=(
   "/media/$USER"
   "/run/media/$USER"
 )
+
+# Logging levels
+VERBOSE=${VERBOSE:-0}
+
+#
+# ─── UTILITY FUNCTIONS ─────────────────────────────────────────────────────────
+#
+log() {
+  echo "[$(date '+%H:%M:%S')] $*" >&2
+}
+
+log_verbose() {
+  [ "$VERBOSE" -eq 1 ] && log "$*" || true
+}
+
+log_error() {
+  echo "[$(date '+%H:%M:%S')] ERROR: $*" >&2
+}
+
+cleanup_on_exit() {
+  local exit_code=$1
+  if [ "$exit_code" -ne 0 ]; then
+    log_error "Script failed with exit code $exit_code"
+    log "Cleaning up..."
+  fi
+}
+
+check_dependencies() {
+  log "Checking dependencies..."
+  local missing=()
+
+  for cmd in cmake make stty find; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+      missing+=("$cmd")
+    fi
+  done
+
+  if [ ${#missing[@]} -gt 0 ]; then
+    log_error "Missing required commands: ${missing[*]}"
+    log_error "Please install them and try again"
+    exit 1
+  fi
+
+  log_verbose "All dependencies found"
+}
+
+validate_target() {
+  local target=$1
+
+  if [ "$target" = "all" ]; then
+    return 0
+  fi
+
+  for valid_target in "${ALL_TARGETS[@]}"; do
+    if [ "$target" = "$valid_target" ]; then
+      return 0
+    fi
+  done
+
+  log_error "Invalid target: $target"
+  log_error "Valid targets: ${ALL_TARGETS[*]} all"
+  exit 1
+}
 
 #
 # ─── FUNCTIONS ─────────────────────────────────────────────────────────────────
@@ -32,98 +98,314 @@ USER_MEDIA_PATHS=(
 build_firmware() {
   local target=$1
 
-  echo "[*] Building firmware target: $target"
-  mkdir -p "$BUILD_DIR"
-  pushd "$BUILD_DIR" >/dev/null
+  log "Building firmware target: $target"
 
-    # regenerate if needed
-    cmake .. 
+  # Validate target exists in CMakeLists.txt
+  if [ "$target" != "all" ] && ! grep -q "add_executable.*$target" CMakeLists.txt 2>/dev/null; then
+    log_error "Target '$target' not found in CMakeLists.txt"
+    return 1
+  fi
 
-    # build just that target
-    cmake --build . --target "$target" -- -j"$(nproc)"
+  if ! mkdir -p "$BUILD_DIR"; then
+    log_error "Failed to create build directory: $BUILD_DIR"
+    return 1
+  fi
+
+  if ! pushd "$BUILD_DIR" >/dev/null; then
+    log_error "Failed to enter build directory: $BUILD_DIR"
+    return 1
+  fi
+
+  # Configure with error checking
+  log_verbose "Running cmake configuration..."
+  if ! cmake .. 2>&1 | tee cmake_config.log; then
+    log_error "CMake configuration failed. Check cmake_config.log for details"
+    popd >/dev/null || true
+    return 1
+  fi
+
+  # Build with error checking and progress
+  log_verbose "Building target '$target'..."
+  local build_jobs
+  build_jobs=$(nproc 2>/dev/null || echo "1")
+
+  if ! cmake --build . --target "$target" -- -j"$build_jobs" 2>&1 | tee "build_${target}.log"; then
+    log_error "Build failed for target '$target'. Check build_${target}.log for details"
+    popd >/dev/null || true
+    return 1
+  fi
+
+  # Verify UF2 file was created
+  if [ "$target" != "all" ] && [ ! -f "${target}.uf2" ]; then
+    log_error "Expected UF2 file '${target}.uf2' was not created"
+    popd >/dev/null || true
+    return 1
+  fi
 
   popd >/dev/null
+  log "Build completed successfully for: $target"
 }
 
-trigger_bootloader() {
-  # bring each /dev/ttyACM* up to 1200 baud + DTR toggle
-  echo "[*] Triggering Pico bootloader via serial…"
+detect_pico_devices() {
   shopt -s nullglob
   local devs=(/dev/ttyACM*)
   shopt -u nullglob
 
-  if [ ${#devs[@]} -eq 0 ]; then
-    echo "[!] No /dev/ttyACM* found. Is Pico connected?" >&2
-    # exit 1
+  # Additional check for USB devices that might be Picos
+  local usb_devs=()
+  if command -v lsusb >/dev/null 2>&1; then
+    mapfile -t usb_devs < <(lsusb | grep -i "2e8a\|raspberry" | cut -d: -f1 | cut -d' ' -f2,4 || true)
   fi
 
+  log_verbose "Found ${#devs[@]} ttyACM devices"
+  [ ${#usb_devs[@]} -gt 0 ] && log_verbose "Found ${#usb_devs[@]} potential Pico USB devices"
+
+  printf '%s\n' "${devs[@]}"
+}
+
+check_bootloader_mode() {
+  # Check if RPI-RP2 mount already exists
+  local mount_point
+  if mount_point=$(find_rpi_mount 2>/dev/null); then
+    log "Device already appears to be in bootloader mode (found: $mount_point)"
+    return 0
+  fi
+  return 1
+}
+
+trigger_bootloader() {
+  # First check if already in bootloader mode
+  if check_bootloader_mode; then
+    log "Skipping bootloader trigger - device already in bootloader mode"
+    return 0
+  fi
+
+  log "Triggering Pico bootloader via serial..."
+
+  local devs
+  mapfile -t devs < <(detect_pico_devices)
+
+  if [ ${#devs[@]} -eq 0 ]; then
+    log "No /dev/ttyACM* found. Device may already be in bootloader mode or disconnected"
+    log "Continuing to check for RPI-RP2 mount..."
+    return 0 # Don't fail - device might already be in bootloader mode
+  fi
+
+  local success=0
   for dev in "${devs[@]}"; do
-    echo "    ↳ $dev"
-    stty -F "$dev" 1200 || continue
-    {
-      exec 3<>"$dev"
-      sleep .1
-      printf "\x00" >&3 || true
-      sleep .1
-      exec 3>&-
-    } 2>/dev/null || true
+    log_verbose "Trying device: $dev"
+
+    # Check if device is readable/writable
+    if [ ! -r "$dev" ] || [ ! -w "$dev" ]; then
+      log_verbose "Device $dev is not accessible (permissions?)"
+      continue
+    fi
+
+    # Try to set baud rate with timeout
+    if timeout 5 stty -F "$dev" 1200 2>/dev/null; then
+      # Try to trigger bootloader
+      {
+        if exec 3<>"$dev" 2>/dev/null; then
+          sleep 0.1
+          printf "\x00" >&3 2>/dev/null || true
+          sleep 0.1
+          exec 3>&- 2>/dev/null
+          success=1
+          log_verbose "Successfully triggered bootloader on $dev"
+        fi
+      } 2>/dev/null || true
+    else
+      log_verbose "Failed to configure $dev"
+    fi
   done
+
+  if [ "$success" -eq 0 ]; then
+    log "Could not trigger bootloader on any device, but continuing..."
+    log "Device may already be in bootloader mode or need manual intervention"
+  fi
+
+  return 0 # Always succeed - we'll check for mount point later
 }
 
 wait_for_disconnect() {
-  echo -n "[*] Waiting for Pico to disconnect…"
-  for _ in {1..40}; do
-    sleep .25
-    shopt -s nullglob
-    local now=(/dev/ttyACM*)
-    shopt -u nullglob
-    [ ${#now[@]} -eq 0 ] && { echo " disconnected."; return; }
-    echo -n "."
+  log "Checking for device disconnect..."
+  local max_wait=20 # Reduced timeout since this is now optional
+  local initial_devs
+  mapfile -t initial_devs < <(detect_pico_devices)
+
+  # If no devices initially, assume already disconnected
+  if [ ${#initial_devs[@]} -eq 0 ]; then
+    log "No devices detected initially - assuming already in bootloader mode"
+    return 0
+  fi
+
+  for ((i = 0; i < max_wait; i++)); do
+    sleep 0.25
+    local current_devs
+    mapfile -t current_devs < <(detect_pico_devices)
+
+    if [ ${#current_devs[@]} -eq 0 ]; then
+      log "Device disconnected successfully"
+      return 0
+    fi
+
+    # Check if bootloader mode appeared while waiting
+    if check_bootloader_mode; then
+      log "Device entered bootloader mode during disconnect wait"
+      return 0
+    fi
+
+    # Show progress every 2 seconds
+    if [ $((i % 8)) -eq 0 ]; then
+      echo -n "."
+    fi
   done
-  echo " (timeout)"
+
+  echo
+  log "Device disconnect timeout - continuing to look for bootloader mount"
+  log "This may happen if device is already in bootloader mode or crashed"
+  return 0 # Don't fail - we'll try to find the mount anyway
+}
+
+find_rpi_mount() {
+  for path in "${USER_MEDIA_PATHS[@]}"; do
+    [ -d "$path" ] || continue
+    local mount
+    mount=$(find "$path" -maxdepth 1 -type d -name "RPI-RP2" 2>/dev/null | head -n1)
+    if [ -n "$mount" ] && [ -w "$mount" ]; then
+      echo "$mount"
+      return 0
+    fi
+  done
+  return 1
 }
 
 copy_uf2() {
-  local uf2="$BUILD_DIR/$1.uf2"
-  echo "[*] Waiting for RPI-RP2 mount (timeout: $TIMEOUT s)…"
-  for ((i=0;i<TIMEOUT;i++)); do
-    for path in "${USER_MEDIA_PATHS[@]}"; do
-      [ -d "$path" ] || continue
-      local m
-      m=$(find "$path" -maxdepth 1 -type d -name "RPI-RP2" 2>/dev/null | head -n1)
-      if [ -n "$m" ]; then
-        echo "[*] Found at: $m"
-        echo "[*] Copying $uf2 → $m/"
-        cp "$uf2" "$m/" && echo "[*] Upload complete." && return 0
+  local uf2_name="$1"
+  local uf2_path="$BUILD_DIR/${uf2_name}.uf2"
+
+  # Verify UF2 file exists and is readable
+  if [ ! -f "$uf2_path" ]; then
+    log_error "UF2 file not found: $uf2_path"
+    return 1
+  fi
+
+  if [ ! -r "$uf2_path" ]; then
+    log_error "UF2 file not readable: $uf2_path"
+    return 1
+  fi
+
+  local uf2_size
+  uf2_size=$(stat -f%z "$uf2_path" 2>/dev/null || stat -c%s "$uf2_path" 2>/dev/null || echo "0")
+  if [ "$uf2_size" -eq 0 ]; then
+    log_error "UF2 file appears to be empty: $uf2_path"
+    return 1
+  fi
+
+  log "Waiting for RPI-RP2 mount (timeout: ${TIMEOUT}s)..."
+
+  for ((i = 0; i < TIMEOUT; i++)); do
+    local mount_point
+    if mount_point=$(find_rpi_mount); then
+      log "Found RPI-RP2 mount at: $mount_point"
+
+      # Verify we can write to the mount
+      if [ ! -w "$mount_point" ]; then
+        log_error "Cannot write to mount point: $mount_point"
+        return 1
       fi
-    done
+
+      log "Copying $uf2_path → $mount_point/"
+      if cp "$uf2_path" "$mount_point/"; then
+        # Verify the copy
+        local copied_file="$mount_point/$(basename "$uf2_path")"
+        if [ -f "$copied_file" ]; then
+          sync # Ensure write is flushed
+          log "Upload completed successfully"
+          return 0
+        else
+          log_error "File copy verification failed"
+          return 1
+        fi
+      else
+        log_error "Failed to copy UF2 file"
+        return 1
+      fi
+    fi
+
     sleep 1
-    echo -n "."
+    [ $((i % 10)) -eq 0 ] && echo -n "." || true
   done
 
-  echo >&2
-  echo "[!] Timed out waiting for RPI-RP2 after $TIMEOUT s." >&2
-  exit 1
+  echo
+  log_error "Timed out waiting for RPI-RP2 mount after ${TIMEOUT}s"
+  log "Please check:"
+  log "  - Pico is in bootloader mode (RPI-RP2 drive visible)"
+  log "  - Mount paths are correct: ${USER_MEDIA_PATHS[*]}"
+  log "  - You have proper permissions"
+  return 1
 }
 
 #
 # ─── MAIN ───────────────────────────────────────────────────────────────────────
 #
-if [ "$BUILD_TARGET" = "all" ]; then
-  for tgt in "${ALL_TARGETS[@]}"; do
-    build_firmware "$tgt"
-  done
-else
-  build_firmware "$BUILD_TARGET"
-fi
+main() {
+  log "Starting firmware build and deploy process..."
 
-trigger_bootloader
-wait_for_disconnect
+  # Pre-flight checks
+  check_dependencies
+  validate_target "$BUILD_TARGET"
 
-# If you built “all”, you probably only want to flash one—but we’ll flash the last-built.
-# Feel free to adjust this logic if you prefer to flash each in turn.
-if [ "$BUILD_TARGET" = all ]; then
-  copy_uf2 "${ALL_TARGETS[-1]}"
-else
-  copy_uf2 "$BUILD_TARGET"
-fi
+  # Check if we're in the right directory
+  if [ ! -f "CMakeLists.txt" ]; then
+    log_error "CMakeLists.txt not found. Are you in the right directory?"
+    exit 1
+  fi
+
+  # Build phase
+  if [ "$BUILD_TARGET" = "all" ]; then
+    for tgt in "${ALL_TARGETS[@]}"; do
+      if ! build_firmware "$tgt"; then
+        log_error "Build failed for target: $tgt"
+        exit 1
+      fi
+    done
+  else
+    if ! build_firmware "$BUILD_TARGET"; then
+      log_error "Build failed for target: $BUILD_TARGET"
+      exit 1
+    fi
+  fi
+
+  # Flash phase
+  log "Starting device programming..."
+
+  # Try to trigger bootloader (non-fatal if it fails)
+  trigger_bootloader
+
+  # Wait for disconnect (non-fatal if it times out)
+  wait_for_disconnect
+
+  # Determine which UF2 to flash
+  local flash_target
+  if [ "$BUILD_TARGET" = "all" ]; then
+    flash_target="${ALL_TARGETS[-1]}"
+    log "Flashing last target from 'all' build: $flash_target"
+  else
+    flash_target="$BUILD_TARGET"
+  fi
+
+  # This is the critical step - finding and copying to the mount
+  if ! copy_uf2 "$flash_target"; then
+    log_error "Failed to flash firmware"
+    log_error "Please ensure your Pico is in bootloader mode:"
+    log_error "  1. Hold BOOTSEL button while connecting USB, or"
+    log_error "  2. Hold BOOTSEL and press RESET if already connected"
+    exit 1
+  fi
+
+  log "Firmware deployment completed successfully!"
+}
+
+# Run main function
+main "$@"
