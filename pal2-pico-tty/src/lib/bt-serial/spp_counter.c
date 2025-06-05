@@ -53,6 +53,12 @@ static size_t echo_len = 0;
 
 #define KEEP_ALIVE_CHAR (0x02)
 
+#define KEEP_ALIVE_INTERVAL_MS 2000 // Send keep-alive every 2 seconds
+#define CONNECTION_TIMEOUT_MS 10000 // Consider connection dead after 10s
+
+static uint32_t last_activity_ms = 0;
+static uint32_t keep_alive_elapsed_ms = 0;
+
 // *****************************************************************************
 /* EXAMPLE_START(spp_counter): SPP Server - Heartbeat Counter over RFCOMM
  *
@@ -137,6 +143,27 @@ static void heartbeat_handler(struct btstack_timer_source *ts)
 
     // 2) Did the user just press a key?
     bool user_pressed_key = user_pressed_key_get();
+
+    // Enhanced keep-alive logic
+    if (rfcomm_channel_id)
+    {
+        // Reset activity timer on any data transmission
+        if (chars_to_send > 0 || user_pressed_key)
+        {
+            last_activity_ms = 0;
+        }
+
+        // Send periodic keep-alive if no activity
+        if (keep_alive_elapsed_ms >= KEEP_ALIVE_INTERVAL_MS && last_activity_ms >= KEEP_ALIVE_INTERVAL_MS)
+        {
+            bt_ring_push(&bt_tx_ring, KEEP_ALIVE_CHAR);
+            rfcomm_request_can_send_now_event(rfcomm_channel_id);
+            keep_alive_elapsed_ms = 0;
+        }
+
+        keep_alive_elapsed_ms += HEARTBEAT_PERIOD_MS;
+        last_activity_ms += HEARTBEAT_PERIOD_MS;
+    }
 
     // 3) Only if we’re actually connected…
     if (rfcomm_channel_id)
@@ -275,9 +302,6 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
         case BTSTACK_EVENT_STATE:
             if (btstack_event_state_get_state(packet) == HCI_STATE_WORKING)
             {
-                uint16_t con_handle = rfcomm_event_channel_opened_get_con_handle(packet);
-                hci_send_cmd(&hci_write_link_policy_settings, con_handle, 0x0000); // disable sniff, hold, park
-
                 gap_discoverable_control(1);
                 gap_connectable_control(1);
 
@@ -303,6 +327,9 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             // ssp: inform about user confirmation request
             debug_printf("SSP User Confirmation Request with numeric value '%06" PRIu32 "'\n", little_endian_read_32(packet, 8));
             debug_printf("SSP User Confirmation Auto accept\n");
+
+            hci_event_user_confirmation_request_get_bd_addr(packet, event_addr);
+            gap_ssp_confirmation_response(event_addr);
             break;
 
         case RFCOMM_EVENT_INCOMING_CONNECTION:
@@ -310,10 +337,11 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             rfcomm_channel_nr = rfcomm_event_incoming_connection_get_server_channel(packet);
             rfcomm_channel_id = rfcomm_event_incoming_connection_get_rfcomm_cid(packet);
 
-            last_con_handle = rfcomm_event_channel_opened_get_con_handle(packet);
-            // DOCUMENT
-            hci_send_cmd(&hci_write_link_policy_settings, last_con_handle, 0x0001);
-            hci_send_cmd(&hci_write_link_supervision_timeout, last_con_handle, 0xEA60);
+            last_con_handle = rfcomm_event_incoming_connection_get_con_handle(packet);
+            // Disable ALL power saving and role switching for maximum stability
+            hci_send_cmd(&hci_write_link_policy_settings, last_con_handle, 0x0000);     // Disable everything
+            hci_send_cmd(&hci_write_link_supervision_timeout, last_con_handle, 0x7D00); // 20 seconds timeout
+            hci_send_cmd(&hci_write_automatic_flush_timeout, last_con_handle, 0x0000);  // Disable auto-flush
 
             rfcomm_request_can_send_now_event(rfcomm_channel_id);
             debug_printf("RFCOMM channel %u requested for %s\n", rfcomm_channel_nr, bd_addr_to_str(event_addr));
