@@ -309,7 +309,7 @@ void upload_char_to_pal(char ch)
 void upload_line_to_pal(const char *line)
 {
     size_t n = strlen(line);
-    bool cr_found;
+    bool cr_found = false;
 
     for (size_t i = 0; i <= n; i++)
     {
@@ -367,7 +367,7 @@ int user_getchar()
         //        printf("%d", telnet_ch);
         if (telnet_ch > -1)
         {
-            char_out = ch;
+            char_out = telnet_ch;
         }
     }
 #endif
@@ -412,7 +412,7 @@ void u_putc(char ch_pal)
     {
         tcp_server_t *telnetserverzz = system_config.telnetserver;
         telnet_ringbuffer_t *rr = &telnetserverzz->rb_out;
-        telnet_ringbuffer_add_char(rr, (char)ch_pal, false); // Last argument controls wheter to overwrite in case ringbuffer fills uup...
+        telnet_ringbuffer_add_char(rr, (char)ch_pal, false); // Last argument controls whether to overwrite in case ringbuffer fills up...
     }
 #endif
 
