@@ -28,6 +28,26 @@ extern "C"
         CONNECTION_STATE_NEW_DISCONNECT = 13,
     } connection_state_t;
 
+    typedef enum
+    {
+        WIFI_CONNECTION_TYPE_WPA2,
+        WIFI_CONNECTION_TYPE_WPA3,
+        WIFI_CONNECTION_TYPE_OPEN,
+        WIFI_CONNECTION_TYPE_WEP
+    } wifi_connection_type_t;
+
+#define MAX_WIFI_SSID_LEN 32
+#define MAX_WIFI_PASSWORD_LEN 64
+#define MAX_WIFI_APS 5
+
+    typedef struct
+    {
+        char ssid[MAX_WIFI_SSID_LEN + 1];
+        char password[MAX_WIFI_PASSWORD_LEN + 1];
+        wifi_connection_type_t connection_type;
+        bool enabled;
+    } wifi_ap_config_t;
+
     typedef struct
     {
         bool usb_connected;
@@ -60,6 +80,9 @@ extern "C"
         bool bs_to_del;
         uint16_t oled_brightness;
         uint16_t menu_scale; // Scale for menu items, e.g., 1 for normal, 2 for double size
+
+        wifi_ap_config_t wifi_aps[MAX_WIFI_APS];
+        uint16_t active_wifi_count;
     } user_config_t;
 
     // Types of config entries
@@ -67,7 +90,9 @@ extern "C"
     {
         CT_UINT16,
         CT_BOOL,
-        CT_CHAR
+        CT_CHAR,
+        CT_STRING,
+        CT_WIFI_TYPE
     } config_type_t;
 
     typedef enum

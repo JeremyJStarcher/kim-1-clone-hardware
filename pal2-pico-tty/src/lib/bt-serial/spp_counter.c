@@ -94,6 +94,18 @@ static uint8_t spp_service_buffer[150];
 static btstack_packet_callback_registration_t hci_event_callback_registration;
 static uint16_t last_con_handle = HCI_CON_HANDLE_INVALID;
 
+// HCI command sequencing state
+typedef enum {
+    HCI_SETUP_IDLE,
+    HCI_SETUP_LINK_POLICY,
+    HCI_SETUP_SUPERVISION_TIMEOUT,
+    HCI_SETUP_FLUSH_TIMEOUT,
+    HCI_SETUP_COMPLETE
+} hci_setup_state_t;
+
+static hci_setup_state_t hci_setup_state = HCI_SETUP_IDLE;
+static uint16_t pending_con_handle = HCI_CON_HANDLE_INVALID;
+
 /* @section SPP Service Setup
  *s
  * @text To provide an SPP service, the L2CAP, RFCOMM, and SDP protocol layers
@@ -286,6 +298,65 @@ static void send_from_ring(uint16_t cid, volatile bt_ring_t *tx)
     }
 }
 
+static void configure_connection_parameters(uint16_t con_handle) {
+    if (hci_setup_state != HCI_SETUP_IDLE) {
+        debug_printf("HCI setup already in progress, ignoring\n");
+        return;
+    }
+    
+    pending_con_handle = con_handle;
+    hci_setup_state = HCI_SETUP_LINK_POLICY;
+    
+    debug_printf("Starting HCI configuration sequence for handle 0x%04x\n", con_handle);
+    hci_send_cmd(&hci_write_link_policy_settings, con_handle, 0x0000);
+}
+
+static void handle_hci_command_complete(uint8_t *packet) {
+    uint16_t opcode = little_endian_read_16(packet, 3);
+    uint8_t status = packet[5];
+    
+    // Only process if we're in setup sequence
+    if (hci_setup_state == HCI_SETUP_IDLE) {
+        return;
+    }
+    
+    if (status != 0) {
+        debug_printf("HCI command 0x%04x failed with status 0x%02x\n", opcode, status);
+        hci_setup_state = HCI_SETUP_IDLE;
+        pending_con_handle = HCI_CON_HANDLE_INVALID;
+        return;
+    }
+    
+    switch (hci_setup_state) {
+        case HCI_SETUP_LINK_POLICY:
+            if (opcode == HCI_OPCODE_HCI_WRITE_LINK_POLICY_SETTINGS) {
+                debug_printf("Link policy set, configuring supervision timeout\n");
+                hci_setup_state = HCI_SETUP_SUPERVISION_TIMEOUT;
+                hci_send_cmd(&hci_write_link_supervision_timeout, pending_con_handle, 0x7D00);
+            }
+            break;
+            
+        case HCI_SETUP_SUPERVISION_TIMEOUT:
+            if (opcode == HCI_OPCODE_HCI_WRITE_LINK_SUPERVISION_TIMEOUT) {
+                debug_printf("Supervision timeout set, configuring flush timeout\n");
+                hci_setup_state = HCI_SETUP_FLUSH_TIMEOUT;
+                hci_send_cmd(&hci_write_automatic_flush_timeout, pending_con_handle, 0x0000);
+            }
+            break;
+            
+        case HCI_SETUP_FLUSH_TIMEOUT:
+            if (opcode == HCI_OPCODE_HCI_WRITE_AUTOMATIC_FLUSH_TIMEOUT) {
+                debug_printf("Connection configuration completed successfully\n");
+                hci_setup_state = HCI_SETUP_COMPLETE;
+                pending_con_handle = HCI_CON_HANDLE_INVALID;
+            }
+            break;
+            
+        default:
+            break;
+    }
+}
+
 static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size)
 {
     UNUSED(channel);
@@ -308,12 +379,19 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
                 one_shot_timer_setup();
             }
             break;
+            
+        case HCI_EVENT_COMMAND_COMPLETE:
+            handle_hci_command_complete(packet);
+            break;
         }
 
         switch (hci_event_packet_get_type(packet))
         {
         case HCI_EVENT_DISCONNECTION_COMPLETE:
             printf(" Disconnect reason(0x08 and 0x13 are common) %02x\n", packet[5]);
+            // Reset HCI setup state on disconnect
+            hci_setup_state = HCI_SETUP_IDLE;
+            pending_con_handle = HCI_CON_HANDLE_INVALID;
             break;
 
         case HCI_EVENT_PIN_CODE_REQUEST:
@@ -338,10 +416,9 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             rfcomm_channel_id = rfcomm_event_incoming_connection_get_rfcomm_cid(packet);
 
             last_con_handle = rfcomm_event_incoming_connection_get_con_handle(packet);
-            // Disable ALL power saving and role switching for maximum stability
-            hci_send_cmd(&hci_write_link_policy_settings, last_con_handle, 0x0000);     // Disable everything
-            hci_send_cmd(&hci_write_link_supervision_timeout, last_con_handle, 0x7D00); // 20 seconds timeout
-            hci_send_cmd(&hci_write_automatic_flush_timeout, last_con_handle, 0x0000);  // Disable auto-flush
+            
+            // Start HCI configuration sequence instead of sending all commands at once
+            configure_connection_parameters(last_con_handle);
 
             rfcomm_request_can_send_now_event(rfcomm_channel_id);
             debug_printf("RFCOMM channel %u requested for %s\n", rfcomm_channel_nr, bd_addr_to_str(event_addr));
@@ -352,6 +429,10 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             if (rfcomm_event_channel_opened_get_status(packet))
             {
                 debug_printf("RFCOMM channel open failed, status %u\n", rfcomm_event_channel_opened_get_status(packet));
+                // Reset connection handle on failure
+                last_con_handle = HCI_CON_HANDLE_INVALID;
+                hci_setup_state = HCI_SETUP_IDLE;
+                pending_con_handle = HCI_CON_HANDLE_INVALID;
             }
             else
             {
@@ -370,6 +451,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
                 system_config.bt_connected_state = CONNECTION_STATE_NEW_CONNECTION;
             }
             break;
+
         case RFCOMM_EVENT_CAN_SEND_NOW:
             send_from_ring(rfcomm_channel_id, &bt_tx_ring);
             break;
@@ -378,6 +460,9 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             debug_printf("RFCOMM channel closed\n");
             rfcomm_channel_id = 0;
             last_con_handle = HCI_CON_HANDLE_INVALID;
+            // Reset HCI setup state on channel close
+            hci_setup_state = HCI_SETUP_IDLE;
+            pending_con_handle = HCI_CON_HANDLE_INVALID;
             system_config.bt_connected_state = CONNECTION_STATE_NEW_DISCONNECT;
 
             // re-enable both discoverable (inquiry) and connectable (page) scans

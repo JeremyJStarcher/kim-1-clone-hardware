@@ -21,6 +21,7 @@
 #define BS_TO_DEL_KEY_NAME "bs_to_del"
 #define OLED_BRIGHTNESS_KEY_NAME "oled_brightness"
 #define MENU_SCALE_KEY_NAME "menu_scale"
+#define WIFI_COUNT_KEY_NAME "wifi_count"
 
 #define CONFIG_FILENAME "config.ini"
 
@@ -59,7 +60,9 @@ user_config_t user_config = {
     .force_upper_case = false,
     .bs_to_del = false,
     .oled_brightness = 255,
-    .menu_scale = 1};
+    .menu_scale = 1,
+    .active_wifi_count = 0,
+    .wifi_aps = {{0}}};
 
 config_entry_t cfg_map[] = {
     {BAUD_KEY_NAME, CT_UINT16, MENU_TYPE_LIST, &user_config.baud, "300, 1200, 2400, 9600", "300\t1200\t2400\t9600"},
@@ -71,6 +74,7 @@ config_entry_t cfg_map[] = {
     {BS_TO_DEL_KEY_NAME, CT_BOOL, MENU_TYPE_LIST, &user_config.bs_to_del, "Send DEL (0x7F) instead of backspace (recommended)", "true\tfalse"},
     {OLED_BRIGHTNESS_KEY_NAME, CT_UINT16, MENU_TYPE_LIST, &user_config.oled_brightness, "OLED Brightness", "32\t64\t128\t192\t255"},
     {MENU_SCALE_KEY_NAME, CT_UINT16, MENU_TYPE_LIST, &user_config.menu_scale, "Menu Scale", "1\t2"},
+    {WIFI_COUNT_KEY_NAME, CT_UINT16, MENU_TYPE_NONE, &user_config.active_wifi_count, "Number of configured WiFi access points", ""},
 };
 
 size_t cfg_map_len = sizeof(cfg_map) / sizeof(cfg_map[0]);
@@ -168,6 +172,38 @@ static void append_kv(
     }
 }
 
+// Parse WiFi connection type from string
+static wifi_connection_type_t parse_wifi_type(const char *s)
+{
+    if (strcasecmp(s, "WPA2") == 0)
+        return WIFI_CONNECTION_TYPE_WPA2;
+    if (strcasecmp(s, "WPA3") == 0)
+        return WIFI_CONNECTION_TYPE_WPA3;
+    if (strcasecmp(s, "OPEN") == 0)
+        return WIFI_CONNECTION_TYPE_OPEN;
+    if (strcasecmp(s, "WEP") == 0)
+        return WIFI_CONNECTION_TYPE_WEP;
+    return WIFI_CONNECTION_TYPE_WPA2; // default
+}
+
+// Convert WiFi connection type to string
+static const char *wifi_type_to_string(wifi_connection_type_t type)
+{
+    switch (type)
+    {
+    case WIFI_CONNECTION_TYPE_WPA2:
+        return "WPA2";
+    case WIFI_CONNECTION_TYPE_WPA3:
+        return "WPA3";
+    case WIFI_CONNECTION_TYPE_OPEN:
+        return "OPEN";
+    case WIFI_CONNECTION_TYPE_WEP:
+        return "WEP";
+    default:
+        return "WPA2";
+    }
+}
+
 void parse_config_line(char *line)
 {
     trim(line);
@@ -183,6 +219,44 @@ void parse_config_line(char *line)
     char *val = eq + 1;
     trim(key);
     trim(val);
+
+    // Handle WiFi AP entries (wifi_ap_0_ssid, wifi_ap_0_password, etc.)
+    if (strncmp(key, "wifi_ap_", 8) == 0)
+    {
+        int ap_index = atoi(key + 8);
+        if (ap_index >= 0 && ap_index < MAX_WIFI_APS)
+        {
+            char *field = strchr(key + 8, '_');
+            if (field)
+            {
+                field++; // skip the underscore
+                if (strcmp(field, "ssid") == 0)
+                {
+                    strncpy(user_config.wifi_aps[ap_index].ssid, val, MAX_WIFI_SSID_LEN);
+                    user_config.wifi_aps[ap_index].ssid[MAX_WIFI_SSID_LEN] = '\0';
+                    // Update active count to include this AP index
+                    if (ap_index >= user_config.active_wifi_count)
+                    {
+                        user_config.active_wifi_count = ap_index + 1;
+                    }
+                }
+                else if (strcmp(field, "password") == 0)
+                {
+                    strncpy(user_config.wifi_aps[ap_index].password, val, MAX_WIFI_PASSWORD_LEN);
+                    user_config.wifi_aps[ap_index].password[MAX_WIFI_PASSWORD_LEN] = '\0';
+                }
+                else if (strcmp(field, "type") == 0)
+                {
+                    user_config.wifi_aps[ap_index].connection_type = parse_wifi_type(val);
+                }
+                else if (strcmp(field, "enabled") == 0)
+                {
+                    user_config.wifi_aps[ap_index].enabled = parse_bool(val);
+                }
+            }
+        }
+        return;
+    }
 
     for (size_t i = 0; i < cfg_map_len; i++)
     {
@@ -252,6 +326,51 @@ bool save_config_to_sd(void)
             append_kv(out, sizeof(out), cfg_map[i].key,
                       "%c", *(char *)cfg_map[i].dest);
             break;
+        }
+    }
+
+    // Save WiFi access points
+    append_comment(out, sizeof(out), "WiFi Access Points");
+
+    // Check if we have any non-empty WiFi configurations
+    bool has_wifi_configs = false;
+    for (int i = 0; i < user_config.active_wifi_count && i < MAX_WIFI_APS; i++)
+    {
+        if (user_config.wifi_aps[i].ssid[0] != '\0')
+        {
+            has_wifi_configs = true;
+            break;
+        }
+    }
+
+    if (!has_wifi_configs)
+    {
+        // Add dummy entry as example when no WiFi APs are configured
+        append_comment(out, sizeof(out), "Example WiFi configuration (remove # to enable):");
+        append_kv(out, sizeof(out), "#wifi_ap_0_ssid", "%s", "YourWiFiName");
+        append_kv(out, sizeof(out), "#wifi_ap_0_password", "%s", "YourWiFiPassword");
+        append_kv(out, sizeof(out), "#wifi_ap_0_type", "%s", "WPA2");
+        append_kv(out, sizeof(out), "#wifi_ap_0_enabled", "%s", "true");
+    }
+    else
+    {
+        for (int i = 0; i < user_config.active_wifi_count && i < MAX_WIFI_APS; i++)
+        {
+            if (user_config.wifi_aps[i].ssid[0] != '\0')
+            {
+                char key_buf[64];
+                snprintf(key_buf, sizeof(key_buf), "wifi_ap_%d_ssid", i);
+                append_kv(out, sizeof(out), key_buf, "%s", user_config.wifi_aps[i].ssid);
+
+                snprintf(key_buf, sizeof(key_buf), "wifi_ap_%d_password", i);
+                append_kv(out, sizeof(out), key_buf, "%s", user_config.wifi_aps[i].password);
+
+                snprintf(key_buf, sizeof(key_buf), "wifi_ap_%d_type", i);
+                append_kv(out, sizeof(out), key_buf, "%s", wifi_type_to_string(user_config.wifi_aps[i].connection_type));
+
+                snprintf(key_buf, sizeof(key_buf), "wifi_ap_%d_enabled", i);
+                append_kv(out, sizeof(out), key_buf, "%s", user_config.wifi_aps[i].enabled ? "true" : "false");
+            }
         }
     }
 

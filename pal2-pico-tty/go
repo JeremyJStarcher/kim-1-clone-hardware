@@ -10,7 +10,7 @@ trap 'cleanup_on_exit $?' EXIT
 # Which target to build & flash?  (override on the command line)
 #  e.g. BUILD_TARGET=pal-interface-usb ./deploy.sh
 #       BUILD_TARGET=all              ./deploy.sh
-BUILD_TARGET=${BUILD_TARGET:-pal-interface-bluetooth}
+BUILD_TARGET=${BUILD_TARGET:-pal-interface-telnet}
 
 # All known CMake targets (must match add_executable names)
 ALL_TARGETS=(
